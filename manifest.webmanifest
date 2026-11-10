@@ -1,0 +1,17 @@
+{
+  "name": "MANCHESTER IS RED",
+  "short_name": "MIR United",
+  "description": "Bilingual Manchester United fan hub",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#b30018",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
