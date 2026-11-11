@@ -18,6 +18,8 @@ document.addEventListener('click',e=>{let b=e.target.closest('[data-save]');if(!
 $('#newsSearch').addEventListener('input',renderStories);$('#newsFilter').addEventListener('change',renderStories);
 function localClock(){const d=new Date();$('#localTime').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});setTimeout(localClock,30000)}
 function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString();$('#lastChecked').title=d.toISOString()}
+
+
 async function loadLive() {
   const apiBase = 'https://manchester-is-red-1.onrender.com/api';
 
