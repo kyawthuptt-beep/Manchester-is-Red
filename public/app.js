@@ -18,7 +18,50 @@ document.addEventListener('click',e=>{let b=e.target.closest('[data-save]');if(!
 $('#newsSearch').addEventListener('input',renderStories);$('#newsFilter').addEventListener('change',renderStories);
 function localClock(){const d=new Date();$('#localTime').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});setTimeout(localClock,30000)}
 function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString();$('#lastChecked').title=d.toISOString()}
-async function loadLive(){let apiBase='https://manchester-is-red-1.onrender.com/api';try{let r=await fetch(apiBase+'/health',{cache:'no-store'});if(!r.ok)throw Error('API unavailable');let h=await r.json();if(h.mode!=='live')throw Error('No provider token');$('#apiDot').classList.add('ok');$('#apiStatus').textContent=t('Live data API ချိတ်ဆက်ထားသည်','LIVE DATA API CONNECTED');$('#dataMode').textContent='LIVE';await Promise.all([loadMatches(apiBase),loadTable(apiBase)]);}catch(e){$('#apiDot').classList.remove('ok');$('#apiStatus').textContent=t('နမူနာမုဒ် · Live API မရရှိသေး','DEMO MODE · LIVE API NOT READY');$('#dataMode').textContent='DEMO';$('#matchList').innerHTML=`<div class="empty">${t('ပွဲစဉ် Live ဒေတာအတွက် Backend နှင့် API Token ချိတ်ဆက်ရန်လိုအပ်သည်။','Connect the backend and provider token to load fixtures.')}</div>`;$('#tableWrap').innerHTML=`<div class="empty">${t('အမှတ်ပေးဇယားအတွက် API ချိတ်ဆက်ရန်လိုအပ်သည်။','Connect the API to load the league table.')}</div>`;}stamp()}
+async function loadLive() {
+  const apiBase = 'https://manchester-is-red-1.onrender.com/api';
+
+  try {
+    const r = await fetch(apiBase + '/health', {
+      cache: 'no-store'
+    });
+
+    if (!r.ok) throw Error('API unavailable');
+
+    const h = await r.json();
+
+    if (h.mode !== 'live') throw Error('No provider token');
+
+    $('#apiDot').classList.add('ok');
+    $('#apiStatus').textContent =
+      t('Live data API ချိတ်ဆက်ထားသည်', 'LIVE DATA API CONNECTED');
+    $('#dataMode').textContent = 'LIVE';
+
+  } catch (e) {
+    $('#apiDot').classList.remove('ok');
+    $('#apiStatus').textContent = 'API CONNECTION ERROR';
+    $('#dataMode').textContent = 'DEMO';
+    stamp();
+    return;
+  }
+
+  const results = await Promise.allSettled([
+    loadMatches(apiBase),
+    loadTable(apiBase)
+  ]);
+
+  if (results[0].status === 'rejected') {
+    $('#matchList').innerHTML =
+      '<div class="empty">Fixtures loading failed.</div>';
+  }
+
+  if (results[1].status === 'rejected') {
+    $('#tableWrap').innerHTML =
+      '<div class="empty">League table loading failed.</div>';
+  }
+
+  stamp();
+}
 
 async function loadMatches(base) {
   let r = await fetch(base + '/matches');
