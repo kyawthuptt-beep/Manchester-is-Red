@@ -2,9 +2,9 @@
   "name": "manchester-is-red-api",
   "version": "2.0.0",
   "private": true,
-  "main": "server.js",
+  "main": "sever.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node sever.js"
   },
   "engines": {
     "node": ">=18"
