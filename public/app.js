@@ -19,8 +19,71 @@ $('#newsSearch').addEventListener('input',renderStories);$('#newsFilter').addEve
 function localClock(){const d=new Date();$('#localTime').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});setTimeout(localClock,30000)}
 function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString();$('#lastChecked').title=d.toISOString()}
 async function loadLive(){let apiBase=window.MIR_API_BASE||'/api';try{let r=await fetch(apiBase+'/health',{cache:'no-store'});if(!r.ok)throw Error('API unavailable');let h=await r.json();if(h.mode!=='live')throw Error('No provider token');$('#apiDot').classList.add('ok');$('#apiStatus').textContent=t('Live data API ချိတ်ဆက်ထားသည်','LIVE DATA API CONNECTED');$('#dataMode').textContent='LIVE';await Promise.all([loadMatches(apiBase),loadTable(apiBase)]);}catch(e){$('#apiDot').classList.remove('ok');$('#apiStatus').textContent=t('နမူနာမုဒ် · Live API မရရှိသေး','DEMO MODE · LIVE API NOT READY');$('#dataMode').textContent='DEMO';$('#matchList').innerHTML=`<div class="empty">${t('ပွဲစဉ် Live ဒေတာအတွက် Backend နှင့် API Token ချိတ်ဆက်ရန်လိုအပ်သည်။','Connect the backend and provider token to load fixtures.')}</div>`;$('#tableWrap').innerHTML=`<div class="empty">${t('အမှတ်ပေးဇယားအတွက် API ချိတ်ဆက်ရန်လိုအပ်သည်။','Connect the API to load the league table.')}</div>`;}stamp()}
-async function loadMatches(base){let r=await fetch(base+'/matches');if(!r.ok)throw Error('matches failed');let j=await r.json();let arr=j.matches||[];$('#matchList').innerHTML=arr.length?arr.slice(0,8).map(m=>{let h=m.homeTeam?.name||'TBC',a=m.awayTeam?.name||'TBC',score=m.score?.fullTime,st=m.status||'SCHEDULED';return `<article class="match"><div class="match-head"><span>${esc(m.competition?.name||'MATCH')}</span><span>${esc(st)}</span></div><div class="match-teams"><b>${esc(h)}</b><span class="score">${score?.home??'—'} : ${score?.away??'—'}</span><b>${esc(a)}</b></div><small>${new Date(m.utcDate).toLocaleString()}</small></article>`}).join(''):`<div class="empty">No fixtures returned by provider.</div>`}
-async function loadTable(base){let r=await fetch(base+'/standings');if(!r.ok)throw Error('table failed');let j=await r.json(),rows=j.standings?.[0]?.table||[];$('#tableWrap').innerHTML=rows.length?`<table><thead><tr><th>#</th><th>TEAM</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PTS</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.position}</td><td>${esc(x.team.name)}</td><td>${x.playedGames}</td><td>${x.won}</td><td>${x.draw}</td><td>${x.lost}</td><td>${x.goalDifference}</td><td><b>${x.points}</b></td></tr>`).join('')}</tbody></table>`:`<div class="empty">No table data returned.</div>`}
+
+async function loadMatches(base) {
+  let r = await fetch(base + '/matches');
+  if (!r.ok) throw Error('matches failed');
+
+  let j = await r.json();
+  let arr = j.matches || [];
+
+  $('#matchList').innerHTML = arr.length
+    ? arr.map(m => `
+      <article class="match">
+        <div class="match-head">
+          <span>${esc(m.competition || 'MATCH')}</span>
+          <span>${esc(m.status || 'SCHEDULED')}</span>
+        </div>
+        <div class="match-teams">
+          <b>${esc(m.home || 'TBC')}</b>
+          <span class="score">${esc(m.score || '—')}</span>
+          <b>${esc(m.away || 'TBC')}</b>
+        </div>
+        <small>${esc(m.date || 'Date TBC')}</small>
+      </article>
+    `).join('')
+    : '<div class="empty">No fixtures returned.</div>';
+}
+
+async function loadTable(base) {
+  let r = await fetch(base + '/standings');
+  if (!r.ok) throw Error('table failed');
+
+  let j = await r.json();
+  let rows = j.table || [];
+
+  $('#tableWrap').innerHTML = rows.length
+    ? `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>TEAM</th>
+            <th>P</th>
+            <th>W</th>
+            <th>D</th>
+            <th>L</th>
+            <th>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(x => `
+            <tr>
+              <td>${x.position}</td>
+              <td>${esc(x.team)}</td>
+              <td>${x.played}</td>
+              <td>${x.won}</td>
+              <td>${x.drawn}</td>
+              <td>${x.lost}</td>
+              <td><b>${x.points}</b></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+    : '<div class="empty">No table data returned.</div>';
+}
+
 $('#refreshBtn').onclick=()=>loadLive();
 $('#notifyBtn').onclick=async()=>{if(!('Notification'in window)){alert('Browser notifications are not supported.');return}let p=await Notification.requestPermission();alert(p==='granted'?'Permission granted. Alerts can only be shown while this app is active in this version.':'Notification permission not granted.')};
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#installBtn').classList.add('hidden')};
