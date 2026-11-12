@@ -91,4 +91,15 @@
 </main>
 <footer><div class="brand"><span class="crest">M</span><span>MANCHESTER <b>IS RED</b><small>INDEPENDENT FAN PROJECT</small></span></div><p data-my="ဤသည် ပရိသတ်ဖန်တီးထားသော သီးခြားပရောဂျက်ဖြစ်ပြီး Manchester United နှင့် တရားဝင်ဆက်နွယ်မှုမရှိပါ။" data-en="Independent fan-made project. Not affiliated with Manchester United.">ဤသည် ပရိသတ်ဖန်တီးထားသော သီးခြားပရောဂျက်ဖြစ်ပြီး Manchester United နှင့် တရားဝင်ဆက်နွယ်မှုမရှိပါ။</p><small>MIR · VERSION 2.0</small></footer>
 <script src="app.js"></script>
-</body></html>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('MIR Service Worker registered'))
+      .catch(error => console.error('Service Worker error:', error));
+  });
+}
+</script>
+</body>
+</html>
