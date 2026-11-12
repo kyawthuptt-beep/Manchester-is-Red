@@ -1,8 +1,8 @@
 
 {
-  "name": "MANCHESTER IS RED",
-  "short_name": "MIR",
-  "description": "Manchester United and World Football News, Fixtures and Live League Tables",
+  "name": "FOOTBALL WORLD",
+"short_name": "FOOTBALL",
+"description": "Global Football News, Fixtures, Results and Live League Tables",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
