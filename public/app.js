@@ -338,17 +338,27 @@ document.addEventListener('click',e=>{
  renderSaved();
 });
 
-$('#leagueSelect')?.addEventListener('change', async () => {
-  const base = 'https://manchester-is-red-1.onrender.com/api';
 
-  try {
-    await loadTable(base);
-  } catch (e) {
-    console.error(e);
+document.querySelectorAll('.league-tab').forEach(tab => {
+  tab.addEventListener('click', async () => {
+    document.querySelectorAll('.league-tab').forEach(item => {
+      item.classList.remove('active');
+    });
 
-    $('#tableWrap').innerHTML =
-      '<div class="empty">Could not load league table.</div>';
-  }
+    tab.classList.add('active');
+
+    const base = 'https://manchester-is-red-1.onrender.com/api';
+
+    try {
+      await loadTable(base);
+    } catch (e) {
+      console.error(e);
+
+      $('#tableWrap').innerHTML =
+        '<div class="empty">Could not load league table.</div>';
+    }
+  });
 });
+
 
 stories=[];setLang(lang);renderStories();renderSaved();localClock();loadLive();loadOfficialNews();
