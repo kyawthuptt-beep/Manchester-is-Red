@@ -35,11 +35,13 @@ async function football(pathname){
 }
 
 // RSS XML helpers
+
 function xmlValue(block,tag){
- const re=new RegExp("<"+tag+"(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)</"+tag+">","i");
+ const re=new RegExp("<"+tag+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+tag+">","i");
  const match=block.match(re);
  return match?match[1].trim():"";
 }
+
 
 function cleanText(value){
  return value
