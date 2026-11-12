@@ -180,12 +180,45 @@ app.get("/api/matches",async(req,res)=>{
  }
 });
 
+
 app.get("/api/standings",async(req,res)=>{
- if(!TOKEN)return res.json({mode:"demo",table:demoTable});
+ const leagues={
+  PL:"Premier League",
+  PD:"LaLiga",
+  SA:"Serie A",
+  BL1:"Bundesliga",
+  FL1:"Ligue 1"
+ };
+
+ const league=String(req.query.league||"PL").toUpperCase();
+
+ if(!leagues[league]){
+  return res.status(400).json({
+   mode:"error",
+   message:"Invalid league code"
+  });
+ }
+
+ if(!TOKEN){
+  return res.json({
+   mode:"demo",
+   league,
+   leagueName:leagues[league],
+   table:league==="PL"?demoTable:[],
+   message:"Live API token is required"
+  });
+ }
 
  try{
-  const data=await football("/competitions/PL/standings");
-  const rows=data.standings?.[0]?.table||[];
+  const data=await football(
+   `/competitions/${league}/standings`
+  );
+
+  const standing=
+   data.standings?.find(s=>s.type==="TOTAL")
+   ||data.standings?.[0];
+
+  const rows=standing?.table||[];
 
   const table=rows.map(t=>({
    position:t.position,
@@ -197,12 +230,26 @@ app.get("/api/standings",async(req,res)=>{
    points:t.points
   }));
 
-  res.json({mode:"live",table});
+  res.json({
+   mode:"live",
+   league,
+   leagueName:leagues[league],
+   table
+  });
 
- }catch(e){
-  res.status(502).json({mode:"error",error:e.message,table:[]});
+ }catch(error){
+  console.error("Standings error:",league,error.message);
+
+  res.status(500).json({
+   mode:"error",
+   league,
+   leagueName:leagues[league],
+   table:[],
+   message:"Could not load league standings"
+  });
  }
 });
+
 
 // NEW: Manchester United Official News
 app.get("/api/news",async(req,res)=>{
