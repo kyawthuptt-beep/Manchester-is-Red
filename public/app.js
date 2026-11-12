@@ -298,4 +298,36 @@ $('#refreshBtn').onclick=()=>loadLive();
 $('#notifyBtn').onclick=async()=>{if(!('Notification'in window)){alert('Browser notifications are not supported.');return}let p=await Notification.requestPermission();alert(p==='granted'?'Permission granted. Alerts can only be shown while this app is active in this version.':'Notification permission not granted.')};
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#installBtn').classList.add('hidden')};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+function renderSaved(){
+ const list=$('#savedList');
+ if(!list) return;
+
+ list.innerHTML=saved.length
+  ?saved.map(s=>card(s)).join('')
+  :'<div class="empty">သိမ်းထားသောသတင်း မရှိသေးပါ။</div>';
+}
+
+document.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-save]');
+ if(!btn) return;
+
+ const id=btn.dataset.save;
+ const story=stories.find(s=>String(s.id)===String(id));
+
+ if(!story) return;
+
+ const index=saved.findIndex(s=>String(s.id)===String(id));
+
+ if(index>=0){
+  saved.splice(index,1);
+ }else{
+  saved.push(story);
+ }
+
+ localStorage.setItem('mir-saved',JSON.stringify(saved));
+ renderStories();
+ renderSaved();
+});
+
 stories=[];setLang(lang);renderStories();renderSaved();localClock();loadLive();loadOfficialNews();
