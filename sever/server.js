@@ -105,7 +105,7 @@ async function getNews(){
  if(!response.ok)throw new Error("Official RSS returned "+response.status);
 
  const xml=await response.text();
- const items=[...xml.matchAll(/<item(?:\\s[^>]*)?>([\\s\\S]*?)<\\/item>/gi)];
+ const items=[...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)];
 
  const news=[];
 
