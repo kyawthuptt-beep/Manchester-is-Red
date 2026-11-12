@@ -250,7 +250,7 @@ async function loadMatches(base) {
 
 
 async function loadTable(base) {
-  const league = $('#leagueSelect')?.value || 'PL';
+  const league = $('.league-tab.active')?.dataset.league || 'PL';
 
   const r = await fetch(
     base + '/standings?league=' + encodeURIComponent(league),
