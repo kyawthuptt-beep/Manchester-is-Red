@@ -1,44 +1,235 @@
+
+
 require("dotenv").config();
 const express=require("express");
 const cors=require("cors");
 const path=require("path");
+
 const app=express();
 app.use(cors());
 app.use(express.json());
+
 const PORT=process.env.PORT||3000;
 const TOKEN=process.env.FOOTBALL_DATA_TOKEN;
 const TEAM_ID=66;
+
+const NEWS_RSS="https://www.manutd.com/Feeds/NewsSecondRSSFeed";
+const TRANSLATE_API="https://api.mymemory.translated.net/get";
+
 const demoMatches=[
  {date:"Demo data",competition:"Premier League",home:"Manchester United",away:"Opponent",score:"Connect API for live fixtures",status:"Preview"},
  {date:"Demo data",competition:"Premier League",home:"Opponent",away:"Manchester United",score:"Connect API for live fixtures",status:"Preview"}
 ];
+
 const demoTable=[
  {position:1,team:"Team data unavailable",played:"—",won:"—",drawn:"—",lost:"—",points:"—"},
  {position:2,team:"Manchester United",played:"—",won:"—",drawn:"—",lost:"—",points:"—"}
 ];
+
 async function football(pathname){
- const response=await fetch("https://api.football-data.org/v4"+pathname,{headers:{"X-Auth-Token":TOKEN}});
+ const response=await fetch("https://api.football-data.org/v4"+pathname,{
+  headers:{"X-Auth-Token":TOKEN}
+ });
  if(!response.ok)throw new Error("football-data.org returned "+response.status);
  return response.json();
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,mode:TOKEN?"live":"demo",provider:"football-data.org"}));
+
+// RSS XML helpers
+function xmlValue(block,tag){
+ const re=new RegExp("<"+tag+"(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)</"+tag+">","i");
+ const match=block.match(re);
+ return match?match[1].trim():"";
+}
+
+function cleanText(value){
+ return value
+  .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g,"$1")
+  .replace(/<[^>]*>/g," ")
+  .replace(/&amp;/g,"&")
+  .replace(/&quot;/g,'"')
+  .replace(/&apos;/g,"'")
+  .replace(/&lt;/g,"<")
+  .replace(/&gt;/g,">")
+  .replace(/&#39;/g,"'")
+  .replace(/&#(\\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))
+  .replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16)))
+  .replace(/\\s+/g," ")
+  .trim();
+}
+
+// MyMemory English to Myanmar
+async function translateText(text){
+ if(!text)return "";
+
+ const shortText=text.slice(0,300);
+
+ try{
+  const params=new URLSearchParams({
+   q:shortText,
+   langpair:"en|my"
+  });
+
+  const response=await fetch(TRANSLATE_API+"?"+params.toString());
+
+  if(!response.ok)throw new Error("Translation service unavailable");
+
+  const data=await response.json();
+
+  if(data.responseStatus!==200)throw new Error("Translation failed");
+
+  return data.responseData?.translatedText||shortText;
+
+ }catch(error){
+  console.error("Translation error:",error.message);
+  return shortText;
+ }
+}
+
+// News cache
+let newsCache=null;
+let newsCacheTime=0;
+const NEWS_CACHE_MS=15*60*1000;
+
+async function getNews(){
+ if(newsCache && Date.now()-newsCacheTime<NEWS_CACHE_MS){
+  return newsCache;
+ }
+
+ const response=await fetch(NEWS_RSS,{
+  headers:{"User-Agent":"MANCHESTER-IS-RED/1.0"},
+  signal:AbortSignal.timeout(15000)
+ });
+
+ if(!response.ok)throw new Error("Official RSS returned "+response.status);
+
+ const xml=await response.text();
+ const items=[...xml.matchAll(/<item(?:\\s[^>]*)?>([\\s\\S]*?)<\\/item>/gi)];
+
+ const news=[];
+
+ for(const item of items.slice(0,5)){
+  const block=item[1];
+
+  const title=cleanText(xmlValue(block,"title"));
+  const description=cleanText(xmlValue(block,"description"));
+  const link=cleanText(xmlValue(block,"link"));
+  const pubDate=cleanText(xmlValue(block,"pubDate"));
+
+  if(!title || !link)continue;
+
+  const myTitle=await translateText(title);
+  const myDescription=description
+   ? await translateText(description)
+   : "";
+
+  news.push({
+   id:link,
+   title,
+   myTitle,
+   description,
+   myDescription,
+   link,
+   pubDate,
+   source:"Manchester United Official"
+  });
+ }
+
+ newsCache=news;
+ newsCacheTime=Date.now();
+
+ return news;
+}
+
+app.get("/api/health",(req,res)=>{
+ res.json({
+  ok:true,
+  mode:TOKEN?"live":"demo",
+  provider:"football-data.org"
+ });
+});
+
 app.get("/api/matches",async(req,res)=>{
  if(!TOKEN)return res.json({mode:"demo",matches:demoMatches});
+
  try{
   const data=await football(`/teams/${TEAM_ID}/matches?status=SCHEDULED,FINISHED&limit=20`);
-  const matches=(data.matches||[]).map(m=>({date:m.utcDate?new Date(m.utcDate).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"TBC",competition:m.competition?.name||"Competition",home:m.homeTeam?.name||"TBC",away:m.awayTeam?.name||"TBC",score:m.score?.fullTime?.home!=null?`${m.score.fullTime.home} - ${m.score.fullTime.away}`:m.status,status:m.status}));
+
+  const matches=(data.matches||[]).map(m=>({
+   date:m.utcDate
+    ?new Date(m.utcDate).toLocaleString("en-GB",{
+      dateStyle:"medium",
+      timeStyle:"short",
+      timeZone:"UTC"
+     })+" UTC"
+    :"TBC",
+   competition:m.competition?.name||"Competition",
+   home:m.homeTeam?.name||"TBC",
+   away:m.awayTeam?.name||"TBC",
+   score:m.score?.fullTime?.home!=null
+    ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
+    :m.status,
+   status:m.status
+  }));
+
   res.json({mode:"live",matches});
- }catch(e){res.status(502).json({mode:"error",error:e.message,matches:[]});}
+
+ }catch(e){
+  res.status(502).json({mode:"error",error:e.message,matches:[]});
+ }
 });
+
 app.get("/api/standings",async(req,res)=>{
  if(!TOKEN)return res.json({mode:"demo",table:demoTable});
+
  try{
   const data=await football("/competitions/PL/standings");
   const rows=data.standings?.[0]?.table||[];
-  const table=rows.map(t=>({position:t.position,team:t.team?.name||"TBC",played:t.playedGames,won:t.won,drawn:t.draw,lost:t.lost,points:t.points}));
+
+  const table=rows.map(t=>({
+   position:t.position,
+   team:t.team?.name||"TBC",
+   played:t.playedGames,
+   won:t.won,
+   drawn:t.draw,
+   lost:t.lost,
+   points:t.points
+  }));
+
   res.json({mode:"live",table});
- }catch(e){res.status(502).json({mode:"error",error:e.message,table:[]});}
+
+ }catch(e){
+  res.status(502).json({mode:"error",error:e.message,table:[]});
+ }
 });
+
+// NEW: Manchester United Official News
+app.get("/api/news",async(req,res)=>{
+ try{
+  const news=await getNews();
+
+  res.json({
+   mode:"live",
+   source:"Manchester United Official",
+   news
+  });
+
+ }catch(e){
+  console.error("News error:",e.message);
+
+  res.status(502).json({
+   mode:"error",
+   error:"Official news is temporarily unavailable.",
+   news:[]
+  });
+ }
+});
+
 app.use(express.static(path.join(__dirname,"../public")));
-app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"../public/index.html")));
-app.listen(PORT,"0.0.0.0",()=>console.log(`MANCHESTER IS RED listening on ${PORT}`));
+
+app.get("*",(req,res)=>{
+ res.sendFile(path.join(__dirname,"../public/index.html"));
+});
+
+app.listen(PORT,"0.0.0.0",()=>{
+ console.log(`MANCHESTER IS RED listening on ${PORT}`);
+});
