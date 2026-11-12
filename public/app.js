@@ -45,8 +45,47 @@ function card(s){
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function safeUrl(u){try{let x=new URL(u);return ['https:'].includes(x.protocol)?x.href:'#'}catch{return '#'}}
 function renderStories(){let q=($('#newsSearch').value||'').toLowerCase(),f=$('#newsFilter').value;let list=stories.filter(s=>(f==='all'||s.category===f)&&(`${s.title} ${s.my||''} ${s.desc||''}`).toLowerCase().includes(q));$('#newsList').innerHTML=list.length?list.map(card).join(''):`<div class="empty">No matching stories / သတင်းမတွေ့ပါ။</div>`}
-function renderSaved(){let el=$('#savedList');el.innerHTML=saved.length?saved.map(card).join(''):`<div class="empty">${t('သိမ်းထားသောသတင်း မရှိသေးပါ။','No saved stories yet.')}</div>`}
-document.addEventListener('click',e=>{let b=e.target.closest('[data-save]');if(!b)return;let id=b.dataset.save,s=stories.find(x=>x.id===id)||saved.find(x=>x.id===id);if(!s)return;if(saved.some(x=>x.id===id))saved=saved.filter(x=>x.id!==id);else saved.unshift(s);localStorage.setItem('mir-saved',JSON.stringify(saved));renderStories();renderSaved()});
+async function loadOfficialNews(){
+ const apiBase='https://manchester-is-red-1.onrender.com/api';
+
+ $('#newsList').innerHTML=
+  '<div class="empty">တရားဝင်သတင်းများ ရယူနေသည်... / Loading official news...</div>';
+
+ try{
+  const r=await fetch(apiBase+'/news',{
+   cache:'no-store'
+  });
+
+  if(!r.ok)throw Error('News API: '+r.status);
+
+  const j=await r.json();
+
+  if(j.mode!=='live'||!Array.isArray(j.news)){
+   throw Error('Official news unavailable');
+  }
+
+  stories=j.news.map(n=>({
+   id:n.id,
+   category:'official',
+   title:n.title,
+   my:n.myTitle||n.title,
+   desc:n.description||'',
+   mydesc:n.myDescription||n.description||'',
+   source:n.source||'Manchester United Official',
+   url:n.link,
+   pubDate:n.pubDate
+  }));
+
+  renderStories();
+  renderSaved();
+
+ }catch(e){
+  console.error('News loading error:',e);
+
+  $('#newsList').innerHTML=
+   '<div class="empty">သတင်းရယူမှု မအောင်မြင်ပါ။ ခဏနေ ပြန်စမ်းကြည့်ပါ။ / News unavailable. Please try again.</div>';
+ }
+}
 $('#newsSearch').addEventListener('input',renderStories);$('#newsFilter').addEventListener('change',renderStories);
 function localClock(){const d=new Date();$('#localTime').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});setTimeout(localClock,30000)}
 function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString();$('#lastChecked').title=d.toISOString()}
@@ -243,4 +282,4 @@ $('#refreshBtn').onclick=()=>loadLive();
 $('#notifyBtn').onclick=async()=>{if(!('Notification'in window)){alert('Browser notifications are not supported.');return}let p=await Notification.requestPermission();alert(p==='granted'?'Permission granted. Alerts can only be shown while this app is active in this version.':'Notification permission not granted.')};
 let installPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('#installBtn').classList.add('hidden')};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
-stories=demoStories;setLang(lang);renderStories();renderSaved();localClock();loadLive();
+stories=[];setLang(lang);renderStories();renderSaved();localClock();loadLive();loadOfficialNews();
