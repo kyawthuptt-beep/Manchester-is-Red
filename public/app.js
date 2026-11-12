@@ -44,7 +44,20 @@ function card(s){
 }
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function safeUrl(u){try{let x=new URL(u);return ['https:'].includes(x.protocol)?x.href:'#'}catch{return '#'}}
-function renderStories(){let q=($('#newsSearch').value||'').toLowerCase(),f=$('#newsFilter').value;let list=stories.filter(s=>(f==='all'||s.category===f)&&(`${s.title} ${s.my||''} ${s.desc||''}`).toLowerCase().includes(q));$('#newsList').innerHTML=list.length?list.map(card).join(''):`<div class="empty">No matching stories / သတင်းမတွေ့ပါ။</div>`}
+function renderStories(){
+ let q=$('#newsSearch').value.toLowerCase();
+ let f=$('#newsFilter').value;
+
+ let list=stories.filter(s=>
+  (f==='all'||s.category===f)&&
+  (`${s.title} ${s.my||''} ${s.desc||''} ${s.mydesc||''}`)
+   .toLowerCase().includes(q)
+ );
+
+ $('#newsList').innerHTML=list.length
+  ?list.map(card).join('')
+  :`<div class="empty">No matching stories / သတင်းမတွေ့ပါ။</div>`;
+}
 async function loadOfficialNews(){
  const apiBase='https://manchester-is-red-1.onrender.com/api';
 
