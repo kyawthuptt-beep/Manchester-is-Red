@@ -7,7 +7,10 @@ const demoStories=[
 ];
 function t(my,en){return lang==='my'?my:en}
 function setLang(v){lang=v;localStorage.setItem('mir-lang',v);document.documentElement.lang=v;document.querySelectorAll('[data-my][data-en]').forEach(e=>e.textContent=e.dataset[v]);$('#langBtn').textContent=v==='my'?'EN':'မြန်မာ';renderStories();renderSaved()}
-$('#langBtn').onclick=()=>setLang(lang==='my'?'en':'my');
+$('#refreshBtn').onclick=()=>{
+ loadLive();
+ loadOfficialNews();
+};
 function label(c){return c==='official'?'OFFICIAL':c==='reported'?'REPORTED':'RUMOUR'}
 function card(s){
  const date=s.pubDate
