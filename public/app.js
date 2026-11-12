@@ -19,7 +19,6 @@ $('#newsSearch').addEventListener('input',renderStories);$('#newsFilter').addEve
 function localClock(){const d=new Date();$('#localTime').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});setTimeout(localClock,30000)}
 function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString();$('#lastChecked').title=d.toISOString()}
 
-
 async function loadLive() {
   const apiBase = 'https://manchester-is-red-1.onrender.com/api';
 
@@ -28,6 +27,10 @@ async function loadLive() {
 
   $('#tableWrap').innerHTML =
     '<div class="empty">အမှတ်ပေးဇယား ရယူနေသည်... / Loading table...</div>';
+
+  $('#apiDot').classList.remove('ok');
+  $('#apiStatus').textContent = 'CHECKING API...';
+  $('#dataMode').textContent = 'CHECKING';
 
   try {
     const r = await fetch(apiBase + '/health', {
@@ -38,48 +41,57 @@ async function loadLive() {
 
     const h = await r.json();
 
-    if (h.mode !== 'live') throw Error('API is not live');
+    if (h.mode !== 'live') {
+      throw Error('API is not live');
+    }
 
-    $('#apiDot').classList.add('ok');
-    $('#apiStatus').textContent =
-      t('Live Data ချိတ်ဆက်ထားသည်', 'LIVE DATA CONNECTED');
-    $('#dataMode').textContent = 'LIVE';
+    const results = await Promise.allSettled([
+      loadMatches(apiBase),
+      loadTable(apiBase)
+    ]);
+
+    const matchesOK = results[0].status === 'fulfilled';
+    const tableOK = results[1].status === 'fulfilled';
+
+    if (matchesOK && tableOK) {
+      $('#apiDot').classList.add('ok');
+      $('#apiStatus').textContent =
+        t('Live Data ချိတ်ဆက်ထားသည်', 'LIVE DATA CONNECTED');
+      $('#dataMode').textContent = 'LIVE';
+    } else {
+      $('#apiDot').classList.remove('ok');
+      $('#apiStatus').textContent = 'PARTIAL API ERROR';
+      $('#dataMode').textContent = 'PARTIAL';
+
+      if (!matchesOK) {
+        $('#matchList').innerHTML =
+          '<div class="empty">Fixtures Error: ' +
+          esc(results[0].reason?.message || 'Unknown error') +
+          '</div>';
+      }
+
+      if (!tableOK) {
+        $('#tableWrap').innerHTML =
+          '<div class="empty">Standings Error: ' +
+          esc(results[1].reason?.message || 'Unknown error') +
+          '</div>';
+      }
+    }
 
   } catch (e) {
     $('#apiDot').classList.remove('ok');
     $('#apiStatus').textContent = 'API CONNECTION ERROR';
-    $('#dataMode').textContent = 'DEMO';
+    $('#dataMode').textContent = 'ERROR';
 
     $('#matchList').innerHTML =
       '<div class="empty">API Error: ' + esc(e.message) + '</div>';
 
     $('#tableWrap').innerHTML =
       '<div class="empty">API Error: ' + esc(e.message) + '</div>';
-
-    stamp();
-    return;
-  }
-
-  const results = await Promise.allSettled([
-    loadMatches(apiBase),
-    loadTable(apiBase)
-  ]);
-
-  if (results[0].status === 'rejected') {
-    $('#matchList').innerHTML =
-      '<div class="empty">Fixtures Error: ' +
-      esc(results[0].reason.message) + '</div>';
-  }
-
-  if (results[1].status === 'rejected') {
-    $('#tableWrap').innerHTML =
-      '<div class="empty">Standings Error: ' +
-      esc(results[1].reason.message) + '</div>';
   }
 
   stamp();
 }
-
 async function loadMatches(base) {
   const r = await fetch(base + '/matches', {
     cache: 'no-store'
