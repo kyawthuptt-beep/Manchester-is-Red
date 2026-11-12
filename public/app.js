@@ -338,4 +338,17 @@ document.addEventListener('click',e=>{
  renderSaved();
 });
 
+$('#leagueSelect')?.addEventListener('change', async () => {
+  const base = 'https://manchester-is-red-1.onrender.com/api';
+
+  try {
+    await loadTable(base);
+  } catch (e) {
+    console.error(e);
+
+    $('#tableWrap').innerHTML =
+      '<div class="empty">Could not load league table.</div>';
+  }
+});
+
 stories=[];setLang(lang);renderStories();renderSaved();localClock();loadLive();loadOfficialNews();
