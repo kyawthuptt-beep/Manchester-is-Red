@@ -23,51 +23,6 @@ function stamp(){let d=new Date();$('#lastChecked').textContent=d.toLocaleString
 async function loadLive() {
   const apiBase = 'https://manchester-is-red-1.onrender.com/api';
 
-  try {
-    const r = await fetch(apiBase + '/health', {
-      cache: 'no-store'
-    });
-
-    if (!r.ok) throw Error('API unavailable');
-
-    const h = await r.json();
-
-    if (h.mode !== 'live') throw Error('No provider token');
-
-    $('#apiDot').classList.add('ok');
-    $('#apiStatus').textContent =
-      t('Live data API ချိတ်ဆက်ထားသည်', 'LIVE DATA API CONNECTED');
-    $('#dataMode').textContent = 'LIVE';
-
-  } catch (e) {
-    $('#apiDot').classList.remove('ok');
-    $('#apiStatus').textContent = 'API CONNECTION ERROR';
-    $('#dataMode').textContent = 'DEMO';
-    stamp();
-    return;
-  }
-
-  const results = await Promise.allSettled([
-    loadMatches(apiBase),
-    loadTable(apiBase)
-  ]);
-
-  if (results[0].status === 'rejected') {
-    $('#matchList').innerHTML =
-      '<div class="empty">Fixtures loading failed.</div>';
-  }
-
-  if (results[1].status === 'rejected') {
-    $('#tableWrap').innerHTML =
-      '<div class="empty">League table loading failed.</div>';
-  }
-
-  stamp();
-}
-
-async function loadLive() {
-  const apiBase = 'https://manchester-is-red-1.onrender.com/api';
-
   $('#matchList').innerHTML =
     '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
 
