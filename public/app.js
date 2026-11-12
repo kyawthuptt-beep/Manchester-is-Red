@@ -9,7 +9,39 @@ function t(my,en){return lang==='my'?my:en}
 function setLang(v){lang=v;localStorage.setItem('mir-lang',v);document.documentElement.lang=v;document.querySelectorAll('[data-my][data-en]').forEach(e=>e.textContent=e.dataset[v]);$('#langBtn').textContent=v==='my'?'EN':'မြန်မာ';renderStories();renderSaved()}
 $('#langBtn').onclick=()=>setLang(lang==='my'?'en':'my');
 function label(c){return c==='official'?'OFFICIAL':c==='reported'?'REPORTED':'RUMOUR'}
-function card(s){return `<article class="story"><div class="story-top"><span class="tag ${s.category}">${label(s.category)}</span><span class="small muted">${esc(s.source||'Source')}</span></div><h3>${esc(lang==='my'?(s.my||s.title):s.title)}</h3><p>${esc(lang==='my'?(s.mydesc||s.desc||''): (s.desc||''))}</p><div class="story-foot"><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">OPEN SOURCE ↗</a><button class="save" data-save="${esc(s.id)}">${saved.some(x=>x.id===s.id)?'★ SAVED':'☆ SAVE'}</button></div></article>`}
+function card(s){
+ const date=s.pubDate
+  ?new Date(s.pubDate).toLocaleString('en-GB',{
+    day:'2-digit',
+    month:'short',
+    year:'numeric',
+    hour:'2-digit',
+    minute:'2-digit',
+    timeZone:'Asia/Yangon'
+   })+' (MMT)'
+  :'';
+
+ return `
+ <article class="story">
+  <div class="story-top">
+   <span class="tag ${s.category}">${label(s.category)}</span>
+   <span class="small muted">${esc(s.source||'Source')}</span>
+  </div>
+
+  <h3>${esc(lang==='my'?(s.my||s.title):s.title)}</h3>
+
+  <p>${esc(lang==='my'?(s.mydesc||s.desc||''):(s.desc||''))}</p>
+
+  <div class="small muted">${esc(date)}</div>
+
+  <div class="story-foot">
+   <a href="${safeUrl(s.url)}" target="_blank" rel="noopener">OPEN SOURCE ↗</a>
+   <button class="save" data-save="${esc(s.id)}">
+    ${saved.some(x=>x.id===s.id)?'★ SAVED':'☆ SAVE'}
+   </button>
+  </div>
+ </article>`;
+}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function safeUrl(u){try{let x=new URL(u);return ['https:'].includes(x.protocol)?x.href:'#'}catch{return '#'}}
 function renderStories(){let q=($('#newsSearch').value||'').toLowerCase(),f=$('#newsFilter').value;let list=stories.filter(s=>(f==='all'||s.category===f)&&(`${s.title} ${s.my||''} ${s.desc||''}`).toLowerCase().includes(q));$('#newsList').innerHTML=list.length?list.map(card).join(''):`<div class="empty">No matching stories / သတင်းမတွေ့ပါ။</div>`}
