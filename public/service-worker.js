@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'mir-pwa-v1';
+const CACHE_NAME = 'football-world-pwa-v1';
 
 const APP_FILES = [
   '/',
