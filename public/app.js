@@ -248,10 +248,14 @@ async function loadMatches(base) {
   `).join('');
 }
 
+
 async function loadTable(base) {
-  const r = await fetch(base + '/standings', {
-    cache: 'no-store'
-  });
+  const league = $('#leagueSelect')?.value || 'PL';
+
+  const r = await fetch(
+    base + '/standings?league=' + encodeURIComponent(league),
+    { cache: 'no-store' }
+  );
 
   if (!r.ok) throw Error('Standings API: ' + r.status);
 
@@ -293,6 +297,7 @@ async function loadTable(base) {
     </table>
   `;
 }
+
 
 $('#refreshBtn').onclick=()=>{
  loadLive();
