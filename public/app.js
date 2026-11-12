@@ -65,15 +65,81 @@ async function loadLive() {
   stamp();
 }
 
+async function loadLive() {
+  const apiBase = 'https://manchester-is-red-1.onrender.com/api';
+
+  $('#matchList').innerHTML =
+    '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
+
+  $('#tableWrap').innerHTML =
+    '<div class="empty">အမှတ်ပေးဇယား ရယူနေသည်... / Loading table...</div>';
+
+  try {
+    const r = await fetch(apiBase + '/health', {
+      cache: 'no-store'
+    });
+
+    if (!r.ok) throw Error('Health API error: ' + r.status);
+
+    const h = await r.json();
+
+    if (h.mode !== 'live') throw Error('API is not live');
+
+    $('#apiDot').classList.add('ok');
+    $('#apiStatus').textContent =
+      t('Live Data ချိတ်ဆက်ထားသည်', 'LIVE DATA CONNECTED');
+    $('#dataMode').textContent = 'LIVE';
+
+  } catch (e) {
+    $('#apiDot').classList.remove('ok');
+    $('#apiStatus').textContent = 'API CONNECTION ERROR';
+    $('#dataMode').textContent = 'DEMO';
+
+    $('#matchList').innerHTML =
+      '<div class="empty">API Error: ' + esc(e.message) + '</div>';
+
+    $('#tableWrap').innerHTML =
+      '<div class="empty">API Error: ' + esc(e.message) + '</div>';
+
+    stamp();
+    return;
+  }
+
+  const results = await Promise.allSettled([
+    loadMatches(apiBase),
+    loadTable(apiBase)
+  ]);
+
+  if (results[0].status === 'rejected') {
+    $('#matchList').innerHTML =
+      '<div class="empty">Fixtures Error: ' +
+      esc(results[0].reason.message) + '</div>';
+  }
+
+  if (results[1].status === 'rejected') {
+    $('#tableWrap').innerHTML =
+      '<div class="empty">Standings Error: ' +
+      esc(results[1].reason.message) + '</div>';
+  }
+
+  stamp();
+}
+
 async function loadMatches(base) {
   const r = await fetch(base + '/matches', {
     cache: 'no-store'
   });
 
-  if (!r.ok) throw Error('matches failed');
+  if (!r.ok) throw Error('Matches API: ' + r.status);
 
   const j = await r.json();
-  const arr = j.matches || [];
+  const arr = Array.isArray(j.matches) ? j.matches : [];
+
+  if (!arr.length) {
+    $('#matchList').innerHTML =
+      '<div class="empty">No fixtures available.</div>';
+    return;
+  }
 
   function formatMatchDate(value) {
     if (!value) return 'Date TBC';
@@ -91,8 +157,6 @@ async function loadMatches(base) {
     };
 
     const [, day, month, year, hour, minute] = match;
-
-    if (months[month] === undefined) return String(value);
 
     const d = new Date(Date.UTC(
       Number(year),
@@ -112,61 +176,68 @@ async function loadMatches(base) {
     }) + ' (MMT)';
   }
 
-  $('#matchList').innerHTML = arr.length
-    ? arr.map(m => `
-      <article class="match">
-        <div class="match-head">
-          <span>${esc(m.competition || 'MATCH')}</span>
-          <span>${esc(m.status || 'SCHEDULED')}</span>
-        </div>
-        <div class="match-teams">
-          <b>${esc(m.home || 'TBC')}</b>
-          <span class="score">${esc(m.score || '—')}</span>
-          <b>${esc(m.away || 'TBC')}</b>
-        </div>
-        <small>${esc(formatMatchDate(m.date))}</small>
-      </article>
-    `).join('')
-    : '<div class="empty">No fixtures returned.</div>';
+  $('#matchList').innerHTML = arr.map(m => `
+    <article class="match">
+      <div class="match-head">
+        <span>${esc(m.competition || 'MATCH')}</span>
+        <span>${esc(m.status || 'SCHEDULED')}</span>
+      </div>
+
+      <div class="match-teams">
+        <b>${esc(m.home || 'TBC')}</b>
+        <span class="score">${esc(m.score || '—')}</span>
+        <b>${esc(m.away || 'TBC')}</b>
+      </div>
+
+      <small>${esc(formatMatchDate(m.date))}</small>
+    </article>
+  `).join('');
 }
 
 async function loadTable(base) {
-  let r = await fetch(base + '/standings');
-  if (!r.ok) throw Error('table failed');
+  const r = await fetch(base + '/standings', {
+    cache: 'no-store'
+  });
 
-  let j = await r.json();
-  let rows = j.table || [];
+  if (!r.ok) throw Error('Standings API: ' + r.status);
 
-  $('#tableWrap').innerHTML = rows.length
-    ? `
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>TEAM</th>
-            <th>P</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
-            <th>PTS</th>
+  const j = await r.json();
+  const rows = Array.isArray(j.table) ? j.table : [];
+
+  if (!rows.length) {
+    $('#tableWrap').innerHTML =
+      '<div class="empty">No league table data.</div>';
+    return;
+  }
+
+  $('#tableWrap').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>TEAM</th>
+          <th>P</th>
+          <th>W</th>
+          <th>D</th>
+          <th>L</th>
+          <th>PTS</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(x => `
+          <tr style="${String(x.team).includes('Manchester United') ? 'background:#fff0f2;font-weight:800;color:#bd001e;' : ''}">
+            <td>${esc(x.position)}</td>
+            <td>${esc(x.team)}</td>
+            <td>${esc(x.played)}</td>
+            <td>${esc(x.won)}</td>
+            <td>${esc(x.drawn)}</td>
+            <td>${esc(x.lost)}</td>
+            <td><b>${esc(x.points)}</b></td>
           </tr>
-        </thead>
-        <tbody>
-          ${rows.map(x => `
-            <tr>
-              <td>${x.position}</td>
-              <td>${esc(x.team)}</td>
-              <td>${x.played}</td>
-              <td>${x.won}</td>
-              <td>${x.drawn}</td>
-              <td>${x.lost}</td>
-              <td><b>${x.points}</b></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `
-    : '<div class="empty">No table data returned.</div>';
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 $('#refreshBtn').onclick=()=>loadLive();
