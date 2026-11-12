@@ -66,11 +66,51 @@ async function loadLive() {
 }
 
 async function loadMatches(base) {
-  let r = await fetch(base + '/matches');
+  const r = await fetch(base + '/matches', {
+    cache: 'no-store'
+  });
+
   if (!r.ok) throw Error('matches failed');
 
-  let j = await r.json();
-  let arr = j.matches || [];
+  const j = await r.json();
+  const arr = j.matches || [];
+
+  function formatMatchDate(value) {
+    if (!value) return 'Date TBC';
+
+    const match = String(value).match(
+      /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s+(\d{2}):(\d{2})\s+UTC$/
+    );
+
+    if (!match) return String(value);
+
+    const months = {
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3,
+      May: 4, Jun: 5, Jul: 6, Aug: 7,
+      Sep: 8, Oct: 9, Nov: 10, Dec: 11
+    };
+
+    const [, day, month, year, hour, minute] = match;
+
+    if (months[month] === undefined) return String(value);
+
+    const d = new Date(Date.UTC(
+      Number(year),
+      months[month],
+      Number(day),
+      Number(hour),
+      Number(minute)
+    ));
+
+    return d.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Yangon'
+    }) + ' (MMT)';
+  }
 
   $('#matchList').innerHTML = arr.length
     ? arr.map(m => `
@@ -84,7 +124,7 @@ async function loadMatches(base) {
           <span class="score">${esc(m.score || '—')}</span>
           <b>${esc(m.away || 'TBC')}</b>
         </div>
-        <small>${esc(m.date || 'Date TBC')}</small>
+        <small>${esc(formatMatchDate(m.date))}</small>
       </article>
     `).join('')
     : '<div class="empty">No fixtures returned.</div>';
