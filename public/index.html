@@ -29,6 +29,7 @@
   <div id="matchList" class="match-list"><div class="empty">Fixture data will appear here when a football data API is connected.</div></div>
  </section>
  
+
 <section id="table" class="section pale">
   <div class="section-head">
     <div>
@@ -39,21 +40,33 @@
     <span class="pill">LIVE TABLE</span>
   </div>
 
-  <div class="league-selector">
-    <label for="leagueSelect">SELECT LEAGUE</label>
-    <select id="leagueSelect">
-      <option value="PL">Premier League</option>
-      <option value="PD">LaLiga</option>
-      <option value="SA">Serie A</option>
-      <option value="BL1">Bundesliga</option>
-      <option value="FL1">Ligue 1</option>
-    </select>
+  <div class="league-tabs">
+    <button type="button" class="league-tab active" data-league="PL">
+      Premier League
+    </button>
+
+    <button type="button" class="league-tab" data-league="PD">
+      LaLiga
+    </button>
+
+    <button type="button" class="league-tab" data-league="SA">
+      Serie A
+    </button>
+
+    <button type="button" class="league-tab" data-league="BL1">
+      Bundesliga
+    </button>
+
+    <button type="button" class="league-tab" data-league="FL1">
+      Ligue 1
+    </button>
   </div>
 
   <div id="tableWrap" class="table-wrap">
     <div class="empty">Loading league table...</div>
   </div>
 </section>
+
 
  <section id="saved" class="section">
   <div class="section-head"><div><p class="eyebrow">05 / YOUR READING LIST</p><h2 data-my="သိမ်းထားသောသတင်းများ" data-en="SAVED STORIES">သိမ်းထားသောသတင်းများ</h2></div></div>
