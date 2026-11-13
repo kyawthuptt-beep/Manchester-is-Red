@@ -190,62 +190,78 @@ async function loadMatches(base) {
   const arr = Array.isArray(j.matches) ? j.matches : [];
 
   if (!arr.length) {
-    $('#matchList').innerHTML =
-      '<div class="empty">No fixtures available.</div>';
-    return;
-  }
+  const liveStatuses = [
+    'IN_PLAY',
+    'PAUSED',
+    'HALF_TIME',
+    'LIVE'
+  ];
 
-  function formatMatchDate(value) {
-    if (!value) return 'Date TBC';
-
-    const match = String(value).match(
-      /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s+(\d{2}):(\d{2})\s+UTC$/
+  const isLive = m =>
+    liveStatuses.includes(
+      String(m.status || '').toUpperCase()
     );
 
-    if (!match) return String(value);
+  function renderMatch(m) {
+    return `
+      <article class="match">
+        <div class="match-head">
+          <span>${esc(m.competition || 'MATCH')}</span>
+          <span>${esc(m.status || 'SCHEDULED')}</span>
+        </div>
 
-    const months = {
-      Jan: 0, Feb: 1, Mar: 2, Apr: 3,
-      May: 4, Jun: 5, Jul: 6, Aug: 7,
-      Sep: 8, Oct: 9, Nov: 10, Dec: 11
-    };
+        <div class="match-teams">
+          <b>${esc(m.home || 'TBC')}</b>
+          <span class="score">${esc(m.score || '—')}</span>
+          <b>${esc(m.away || 'TBC')}</b>
+        </div>
 
-    const [, day, month, year, hour, minute] = match;
-
-    const d = new Date(Date.UTC(
-      Number(year),
-      months[month],
-      Number(day),
-      Number(hour),
-      Number(minute)
-    ));
-
-    return d.toLocaleString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Yangon'
-    }) + ' (MMT)';
+        <small>${esc(formatMatchDate(m.date))}</small>
+      </article>
+    `;
   }
 
-  $('#matchList').innerHTML = arr.map(m => `
-    <article class="match">
-      <div class="match-head">
-        <span>${esc(m.competition || 'MATCH')}</span>
-        <span>${esc(m.status || 'SCHEDULED')}</span>
-      </div>
+  const liveMatches = arr.filter(isLive);
 
-      <div class="match-teams">
-        <b>${esc(m.home || 'TBC')}</b>
-        <span class="score">${esc(m.score || '—')}</span>
-        <b>${esc(m.away || 'TBC')}</b>
-      </div>
+  const otherMatches = arr.filter(m => !isLive(m));
 
-      <small>${esc(formatMatchDate(m.date))}</small>
-    </article>
-  `).join('');
+  const leagues = {};
+
+  otherMatches.forEach(m => {
+    const league = m.competition || 'OTHER MATCHES';
+
+    if (!leagues[league]) {
+      leagues[league] = [];
+    }
+
+    leagues[league].push(m);
+  });
+
+  let html = '';
+
+  if (liveMatches.length) {
+    html += `
+      <section class="match-group">
+        <h3>🔴 LIVE MATCHES</h3>
+        ${liveMatches.map(renderMatch).join('')}
+      </section>
+    `;
+  }
+
+  Object.keys(leagues).forEach(league => {
+    html += `
+      <section class="match-group">
+        <h3>${esc(league)}</h3>
+        ${leagues[league].map(renderMatch).join('')}
+      </section>
+    `;
+  });
+
+  if (!arr.length) {
+    html = '<p>No matches available.</p>';
+  }
+
+  $('#matchList').innerHTML = html;
 }
 
 
