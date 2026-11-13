@@ -308,6 +308,38 @@ app.get("/api/live-test",async(req,res)=>{
 });
 
 
+app.get("/api/date-test",async(req,res)=>{
+ try{
+  const today=new Date().toISOString().slice(0,10);
+
+  const data=await football(
+   `/matches?date=${today}`
+  );
+
+  res.json({
+   mode:"live",
+   testDate:today,
+   filters:data.filters||{},
+   resultSet:data.resultSet||{},
+   count:(data.matches||[]).length,
+   matches:(data.matches||[]).map(m=>({
+    id:m.id,
+    date:m.utcDate,
+    competition:m.competition?.name,
+    home:m.homeTeam?.name,
+    away:m.awayTeam?.name,
+    status:m.status
+   }))
+  });
+
+ }catch(e){
+  res.status(502).json({
+   mode:"error",
+   error:e.message
+  });
+ }
+});
+
 app.get("/api/standings",async(req,res)=>{
  const leagues={
   PL:"Premier League",
