@@ -61,8 +61,8 @@ function setLang(v) {
   renderStories();
   renderSaved();
   renderFollowing();
+  renderPlayerFollowing();
 }
-
 if ($('#langBtn')) {
   $('#langBtn').addEventListener('click', () => {
     setLang(lang === 'my' ? 'en' : 'my');
