@@ -246,7 +246,9 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
 
    status:m.status
   }));
-
+status:m.status,
+minute:m.minute||null,
+elapsed:m.score?.duration||null
   res.json({
    mode:"live",
    source:"Global Football Matches",
