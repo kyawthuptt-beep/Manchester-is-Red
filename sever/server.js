@@ -13,7 +13,16 @@ const PORT=process.env.PORT||3000;
 const TOKEN=process.env.FOOTBALL_DATA_TOKEN;
 const TEAM_ID=66;
 
-const NEWS_RSS="https://www.manutd.com/Feeds/NewsSecondRSSFeed";
+const NEWS_FEEDS=[
+ {
+  name:"BBC Sport",
+  url:"https://feeds.bbci.co.uk/sport/football/rss.xml"
+ },
+ {
+  name:"Sky Sports",
+  url:"https://www.skysports.com/rss/11095"
+ }
+];
 const TRANSLATE_API="https://api.mymemory.translated.net/get";
 
 const demoMatches=[
@@ -92,10 +101,79 @@ let newsCache=null;
 let newsCacheTime=0;
 const NEWS_CACHE_MS=15*60*1000;
 
+
 async function getNews(){
  if(newsCache && Date.now()-newsCacheTime<NEWS_CACHE_MS){
   return newsCache;
  }
+
+ const results=await Promise.allSettled(
+  NEWS_FEEDS.map(async feed=>{
+   const response=await fetch(feed.url,{
+    headers:{"User-Agent":"FOOTBALL-WORLD/1.0"},
+    signal:AbortSignal.timeout(15000)
+   });
+
+   if(!response.ok){
+    throw new Error(feed.name+" RSS returned "+response.status);
+   }
+
+   const xml=await response.text();
+
+   const items=[
+    ...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)
+   ];
+
+   return items.map(item=>{
+    const block=item[1];
+
+    return {
+     id:cleanText(xmlValue(block,"guid")) ||
+        cleanText(xmlValue(block,"link")),
+     title:cleanText(xmlValue(block,"title")),
+     description:cleanText(xmlValue(block,"description")),
+     link:cleanText(xmlValue(block,"link")),
+     pubDate:cleanText(xmlValue(block,"pubDate")),
+     source:feed.name
+    };
+   });
+  })
+ );
+
+ let news=results
+  .filter(x=>x.status==="fulfilled")
+  .flatMap(x=>x.value)
+  .filter(n=>n.title && n.link)
+  .filter(n=>n.link.startsWith("https://"));
+
+ news=news.filter((n,i,arr)=>
+  arr.findIndex(x=>x.link===n.link)===i
+ );
+
+ news.sort((a,b)=>
+  new Date(b.pubDate).getTime()-
+  new Date(a.pubDate).getTime()
+ );
+
+ news=news.slice(0,8);
+
+ if(!news.length){
+  throw new Error("All football news feeds are unavailable");
+ }
+
+ for(const item of news){
+  item.myTitle=await translateText(item.title);
+  item.myDescription=item.description
+   ?await translateText(item.description)
+   :"";
+ }
+
+ newsCache=news;
+ newsCacheTime=Date.now();
+
+ return news;
+}
+
 
  const response=await fetch(NEWS_RSS,{
   headers:{"User-Agent":"MANCHESTER-IS-RED/1.0"},
