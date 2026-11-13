@@ -227,7 +227,8 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
    `/matches?competitions=${competitions}&dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
   );
 
-  const matches=(data.matches||[]).map(m=>({
+
+const matches=(data.matches||[]).map(m=>({
    date:m.utcDate
     ?new Date(m.utcDate).toLocaleString("en-GB",{
       dateStyle:"medium",
@@ -244,8 +245,11 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
     ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
     :m.status,
 
-   status:m.status
+   status:m.status,
+   minute:m.minute||null,
+   elapsed:m.score?.duration||null
   }));
+
 status:m.status,
 minute:m.minute||null,
 elapsed:m.score?.duration||null
