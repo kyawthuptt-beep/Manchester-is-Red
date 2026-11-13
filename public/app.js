@@ -786,8 +786,6 @@ function toggleFollowing(team) {
   renderFollowing();
 }
 
-
-
 function renderFollowing() {
   const container = $('#following .feature-placeholder');
 
@@ -811,6 +809,36 @@ function renderFollowing() {
 
     return;
   }
+
+  container.innerHTML = `
+    <div class="feature-icon">⭐</div>
+
+    <h3>
+      ${t('Follow လုပ်ထားသော အသင်းများ', 'Your Following Teams')}
+    </h3>
+
+    <div class="following-list">
+      ${followedTeams.map(team => `
+        <div class="following-team">
+
+          <button
+            class="team-profile-link"
+            data-open-team="${esc(team)}">
+            ⚽ ${esc(team)}
+            <span>›</span>
+          </button>
+
+          <button
+            class="save"
+            data-unfollow="${esc(team)}">
+            ${t('မလိုက်တော့ပါ', 'Unfollow')}
+          </button>
+
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
   container.innerHTML = `
     <div class="feature-icon">⭐</div>
@@ -1026,6 +1054,14 @@ if ('IntersectionObserver' in window) {
 /* =========================================
    MAIN CLICK HANDLER
 ========================================= */
+
+  const teamProfileBtn = e.target.closest('[data-open-team]');
+
+  if (teamProfileBtn) {
+    const team = teamProfileBtn.dataset.openTeam;
+     
+    return;
+  }
 
 document.addEventListener('click', e => {
 
