@@ -346,5 +346,5 @@ app.get("*",(req,res)=>{
 });
 
 app.listen(PORT,"0.0.0.0",()=>{
- console.log(`MANCHESTER IS RED listening on ${PORT}`);
+ console.log(`FOOTBALL WORLD listening on ${PORT}`);
 });
