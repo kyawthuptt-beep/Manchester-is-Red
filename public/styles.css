@@ -971,3 +971,37 @@ select:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+/* FOOTBALL WORLD - Navigation Fix */
+.bottom-nav {
+  display: grid !important;
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  min-height: 65px;
+  z-index: 99999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #141a23 !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  padding: 9px 5px calc(9px + env(safe-area-inset-bottom)) !important;
+}
+
+.bottom-nav .nav-item {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b8c0cc !important;
+  text-decoration: none;
+  font-size: 10px;
+}
+
+.bottom-nav .nav-item.active {
+  color: #e31837 !important;
+}
+
+.bottom-nav .nav-icon {
+  font-size: 20px;
+}
