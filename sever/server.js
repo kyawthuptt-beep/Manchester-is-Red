@@ -210,7 +210,7 @@ async function getNews(){
    myDescription,
    link,
    pubDate,
-   source:"Manchester United Official"
+   source:"Global Football News",
   });
  }
 
