@@ -249,6 +249,12 @@ const matches=(data.matches||[]).map(m=>({
   }));
 
 
+  res.json({
+   mode:"live",
+   source:"Global Football Matches",
+   matches
+  });
+
  }catch(e){
   console.error("Matches error:",e.message);
 
