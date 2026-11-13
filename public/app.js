@@ -1023,9 +1023,6 @@ if ('IntersectionObserver' in window) {
   });
 
 }
-
-
-
 /* =========================================
    MAIN CLICK HANDLER
 ========================================= */
@@ -1053,9 +1050,17 @@ document.addEventListener('click', e => {
     return;
   }
 
+  const unfollowPlayerBtn =
+    e.target.closest('[data-unfollow-player]');
+
+  if (unfollowPlayerBtn) {
+    togglePlayerFollowing(
+      unfollowPlayerBtn.dataset.unfollowPlayer
+    );
+    return;
+  }
+
 });
-
-
 /* =========================================
    LEAGUE TABS
 ========================================= */
