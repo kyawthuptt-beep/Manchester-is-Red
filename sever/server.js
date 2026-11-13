@@ -228,6 +228,7 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
   );
 
 
+
 const matches=(data.matches||[]).map(m=>({
    date:m.utcDate
     ?new Date(m.utcDate).toLocaleString("en-GB",{
@@ -245,8 +246,11 @@ const matches=(data.matches||[]).map(m=>({
     ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
     :m.status,
 
-   status:m.status
+   status:m.status,
+   minute:m.minute??null,
+   injuryTime:m.injuryTime??null
   }));
+
 
 
   res.json({
