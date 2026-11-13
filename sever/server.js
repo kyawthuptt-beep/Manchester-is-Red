@@ -289,7 +289,7 @@ app.get("/api/news",async(req,res)=>{
 
   res.json({
    mode:"live",
-   source:"Manchester United Official",
+   source:"Global Football News",
    news
   });
 
