@@ -197,7 +197,7 @@ app.get("/api/matches",async(req,res)=>{
   dateFrom.setUTCDate(dateFrom.getUTCDate()-14);
 
   const dateTo=new Date(today);
-  dateTo.setUTCDate(dateTo.getUTCDate()+7);
+  dateTo.setUTCDate(dateTo.getUTCDate()+21);
 
   const formatDate=d=>
    d.toISOString().slice(0,10);
