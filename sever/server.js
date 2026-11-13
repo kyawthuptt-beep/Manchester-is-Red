@@ -36,11 +36,30 @@ const demoTable=[
 ];
 
 async function football(pathname){
- const response=await fetch("https://api.football-data.org/v4"+pathname,{
-  headers:{"X-Auth-Token":TOKEN}
- });
- if(!response.ok)throw new Error("football-data.org returned "+response.status);
- return response.json();
+ const response=await fetch(
+  "https://api.football-data.org/v4"+pathname,
+  {
+   headers:{"X-Auth-Token":TOKEN}
+  }
+ );
+
+ const body=await response.text();
+
+ if(!response.ok){
+  let detail=body;
+
+  try{
+   const data=JSON.parse(body);
+   detail=data.message||data.error||body;
+  }catch(e){}
+
+  throw new Error(
+   "football-data.org returned "+
+   response.status+": "+detail
+  );
+ }
+
+ return JSON.parse(body);
 }
 
 // RSS XML helpers
