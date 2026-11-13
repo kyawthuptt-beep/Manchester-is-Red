@@ -835,6 +835,83 @@ function renderFollowing() {
   `;
 }
 
+/* =========================================
+   PLAYER FOLLOWING
+========================================= */
+
+function saveFollowingPlayers() {
+  localStorage.setItem(
+    'fw-following-players',
+    JSON.stringify(followedPlayers)
+  );
+}
+
+function togglePlayerFollowing(player) {
+  player = String(player).trim();
+
+  if (!player || player === 'TBC') return;
+
+  const index = followedPlayers.findIndex(
+    x => x.toLowerCase() === player.toLowerCase()
+  );
+
+  if (index >= 0) {
+    followedPlayers.splice(index, 1);
+  } else {
+    followedPlayers.push(player);
+  }
+
+  saveFollowingPlayers();
+  renderPlayerFollowing();
+}
+
+function renderPlayerFollowing() {
+  const container = $('#playerFollowingList');
+
+  if (!container) return;
+
+  if (!followedPlayers.length) {
+    container.innerHTML = `
+      <div class="feature-icon">⚽</div>
+
+      <h3>
+        ${t('ကစားသမား မရွေးချယ်ရသေးပါ', 'No Players Followed Yet')}
+      </h3>
+
+      <p>
+        ${t(
+          'နှစ်သက်သော ကစားသမားများကို Follow လုပ်နိုင်ပါမယ်။',
+          'Follow your favourite football players.'
+        )}
+      </p>
+    `;
+
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="feature-icon">⚽</div>
+
+    <h3>
+      ${t('Follow လုပ်ထားသော ကစားသမားများ', 'Your Favourite Players')}
+    </h3>
+
+    <div class="following-list">
+      ${followedPlayers.map(player => `
+        <div class="following-team">
+          <strong>${esc(player)}</strong>
+
+          <button
+            class="save"
+            data-unfollow-player="${esc(player)}">
+            ${t('မလိုက်တော့ပါ', 'Unfollow')}
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 
 /* =========================================
    SAVED STORIES
