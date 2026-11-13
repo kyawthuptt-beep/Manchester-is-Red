@@ -179,7 +179,17 @@ async function loadLive() {
 
   stamp();
 }
+function formatMatchDate(value) {
+  if (!value) return 'Date TBC';
 
+  const match = String(value).match(
+    /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s+(\d{2}):(\d{2})\s+UTC$/
+  );
+
+  if (!match) return value;
+
+  return `${match[1]} ${match[2]} ${match[3]} • ${match[4]}:${match[5]} UTC`;
+}
 async function loadMatches(base) {
   const r = await fetch(base + '/matches', {
     cache: 'no-store'
