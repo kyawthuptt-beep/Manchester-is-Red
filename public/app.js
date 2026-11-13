@@ -333,7 +333,34 @@ async function loadTable(base) {
   `;
 }
 
+let scoreRefreshBusy = false;
 
+async function autoRefreshScores() {
+  if (scoreRefreshBusy) return;
+
+  scoreRefreshBusy = true;
+
+  try {
+    const apiBase =
+      'https://manchester-is-red-1.onrender.com/api';
+
+    await loadMatches(apiBase);
+
+    console.log('LIVE SCORES UPDATED');
+
+  } catch (e) {
+    console.error('Live score refresh error:', e);
+
+  } finally {
+    scoreRefreshBusy = false;
+  }
+}
+
+setInterval(() => {
+  if (!document.hidden) {
+    autoRefreshScores();
+  }
+}, 60000);
 $('#refreshBtn').onclick=()=>{
  loadLive();
  loadOfficialNews();
