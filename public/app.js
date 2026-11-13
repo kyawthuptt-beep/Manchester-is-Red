@@ -787,6 +787,7 @@ function toggleFollowing(team) {
 }
 
 
+
 function renderFollowing() {
   const container = $('#following .feature-placeholder');
 
@@ -810,6 +811,30 @@ function renderFollowing() {
 
     return;
   }
+
+  container.innerHTML = `
+    <div class="feature-icon">⭐</div>
+
+    <h3>
+      ${t('Follow လုပ်ထားသော အသင်းများ', 'Your Following Teams')}
+    </h3>
+
+    <div class="following-list">
+      ${followedTeams.map(team => `
+        <div class="following-team">
+          <strong>${esc(team)}</strong>
+
+          <button
+            class="save"
+            data-unfollow="${esc(team)}">
+            ${t('မလိုက်တော့ပါ', 'Unfollow')}
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 
   container.innerHTML = `
     <div class="feature-icon">⭐</div>
@@ -1176,7 +1201,7 @@ setLang(lang);
 renderStories();
 renderSaved();
 renderFollowing();
-
+renderPlayerFollowing();
 updateDateLabel();
 localClock();
 
