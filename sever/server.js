@@ -242,10 +242,9 @@ const matches=(data.matches||[]).map(m=>({
    home:m.homeTeam?.name||"TBC",
    away:m.awayTeam?.name||"TBC",
 
-  score:
- m.score?.fullTime?.home!=null
-  ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
-  :"—", 
+  score:m.score?.fullTime?.home!=null
+ ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
+ :m.status,
 
    status:m.status,
    minute:m.minute??null,
@@ -281,7 +280,10 @@ app.get("/api/live-test",async(req,res)=>{
    competition:m.competition?.name||"Competition",
    home:m.homeTeam?.name||"TBC",
    away:m.awayTeam?.name||"TBC",
-   score:`${m.score?.fullTime?.home??0} - ${m.score?.fullTime?.away??0}`,
+   score:
+ m.score?.fullTime?.home!=null
+  ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
+  :"—",
    status:m.status,
    minute:m.minute??null,
    injuryTime:m.injuryTime??null
