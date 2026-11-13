@@ -17,6 +17,8 @@ let followedPlayers = JSON.parse(
   localStorage.getItem('fw-following-players') || '[]'
 );
 let allMatches = [];
+let currentStandings = [];
+let currentLeague = 'PL';
 let selectedDate = null;
 let scoreRefreshBusy = false;
 
@@ -599,7 +601,8 @@ async function loadTable(base) {
   const j = await r.json();
 
   const rows = Array.isArray(j.table) ? j.table : [];
-
+currentStandings = rows;
+currentLeague = league;
   if (!rows.length) {
     $('#tableWrap').innerHTML =
       '<div class="empty">No league table data.</div>';
