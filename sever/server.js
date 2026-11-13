@@ -181,11 +181,32 @@ app.get("/api/health",(req,res)=>{
  });
 });
 
+
 app.get("/api/matches",async(req,res)=>{
- if(!TOKEN)return res.json({mode:"demo",matches:demoMatches});
+ if(!TOKEN){
+  return res.json({
+   mode:"demo",
+   matches:demoMatches
+  });
+ }
 
  try{
-  const data=await football(`/teams/${TEAM_ID}/matches?status=SCHEDULED,FINISHED&limit=20`);
+  const today=new Date();
+
+  const dateFrom=new Date(today);
+  dateFrom.setUTCDate(dateFrom.getUTCDate()-3);
+
+  const dateTo=new Date(today);
+  dateTo.setUTCDate(dateTo.getUTCDate()+7);
+
+  const formatDate=d=>
+   d.toISOString().slice(0,10);
+
+  const competitions="PL,PD,SA,BL1,FL1";
+
+  const data=await football(
+   `/matches?competitions=${competitions}&dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
+  );
 
   const matches=(data.matches||[]).map(m=>({
    date:m.utcDate
@@ -195,21 +216,35 @@ app.get("/api/matches",async(req,res)=>{
       timeZone:"UTC"
      })+" UTC"
     :"TBC",
+
    competition:m.competition?.name||"Competition",
    home:m.homeTeam?.name||"TBC",
    away:m.awayTeam?.name||"TBC",
+
    score:m.score?.fullTime?.home!=null
     ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
     :m.status,
+
    status:m.status
   }));
 
-  res.json({mode:"live",matches});
+  res.json({
+   mode:"live",
+   source:"Global Football Matches",
+   matches
+  });
 
  }catch(e){
-  res.status(502).json({mode:"error",error:e.message,matches:[]});
+  console.error("Matches error:",e.message);
+
+  res.status(502).json({
+   mode:"error",
+   error:e.message,
+   matches:[]
+  });
  }
 });
+
 
 
 app.get("/api/standings",async(req,res)=>{
