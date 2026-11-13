@@ -1079,6 +1079,16 @@ document.addEventListener('click', e => {
     return;
   }
 
+  const teamProfileBtn =
+    e.target.closest('[data-open-team]');
+
+  if (teamProfileBtn) {
+    const team = teamProfileBtn.dataset.openTeam;
+
+    openTeamProfile(team);
+    return;
+  }
+
   const unfollowBtn = e.target.closest('[data-unfollow]');
 
   if (unfollowBtn) {
@@ -1097,6 +1107,7 @@ document.addEventListener('click', e => {
   }
 
 });
+
 /* =========================================
    LEAGUE TABS
 ========================================= */
