@@ -173,54 +173,6 @@ async function getNews(){
 
  return news;
 }
-
-
-const response=await fetch(NEWS_RSS,{
-  headers:{"User-Agent":"MANCHESTER-IS-RED/1.0"},
-  signal:AbortSignal.timeout(15000)
- });
-
- if(!response.ok)throw new Error("Official RSS returned "+response.status);
-
- const xml=await response.text();
- const items=[...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)];
-
- const news=[];
-
- for(const item of items.slice(0,5)){
-  const block=item[1];
-
-  const title=cleanText(xmlValue(block,"title"));
-  const description=cleanText(xmlValue(block,"description"));
-  const link=cleanText(xmlValue(block,"link"));
-  const pubDate=cleanText(xmlValue(block,"pubDate"));
-
-  if(!title || !link)continue;
-
-  const myTitle=await translateText(title);
-  const myDescription=description
-   ? await translateText(description)
-   : "";
-
-  news.push({
-   id:link,
-   title,
-   myTitle,
-   description,
-   myDescription,
-   link,
-   pubDate,
-   source:"Global Football News",
-  });
- }
-
- newsCache=news;
- newsCacheTime=Date.now();
-
- return news;
-}
- 
-
 app.get("/api/health",(req,res)=>{
  res.json({
   ok:true,
