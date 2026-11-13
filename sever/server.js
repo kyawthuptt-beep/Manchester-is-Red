@@ -245,19 +245,9 @@ const matches=(data.matches||[]).map(m=>({
     ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
     :m.status,
 
-   status:m.status,
-   minute:m.minute||null,
-   elapsed:m.score?.duration||null
+   status:m.status
   }));
 
-status:m.status,
-minute:m.minute||null,
-elapsed:m.score?.duration||null
-  res.json({
-   mode:"live",
-   source:"Global Football Matches",
-   matches
-  });
 
  }catch(e){
   console.error("Matches error:",e.message);
