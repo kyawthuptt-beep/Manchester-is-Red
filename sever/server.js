@@ -175,7 +175,7 @@ async function getNews(){
 }
 
 
- const response=await fetch(NEWS_RSS,{
+const response=await fetch(NEWS_RSS,{
   headers:{"User-Agent":"MANCHESTER-IS-RED/1.0"},
   signal:AbortSignal.timeout(15000)
  });
@@ -219,6 +219,7 @@ async function getNews(){
 
  return news;
 }
+ 
 
 app.get("/api/health",(req,res)=>{
  res.json({
