@@ -179,17 +179,30 @@ async function loadLive() {
 
   stamp();
 }
+
 async function loadMatches(base) {
   const r = await fetch(base + '/matches', {
     cache: 'no-store'
   });
 
-  if (!r.ok) throw Error('Matches API: ' + r.status);
+  if (!r.ok) {
+    throw Error('Matches API: ' + r.status);
+  }
 
   const j = await r.json();
+
+  if (j.mode === 'error') {
+    throw Error(j.error || 'Matches API error');
+  }
+
   const arr = Array.isArray(j.matches) ? j.matches : [];
 
   if (!arr.length) {
+    $('#matchList').innerHTML =
+      '<div class="empty">လက်ရှိပြသနိုင်သော ပွဲစဉ်မရှိသေးပါ။ / No matches available.</div>';
+    return;
+  }
+
   const liveStatuses = [
     'IN_PLAY',
     'PAUSED',
@@ -222,7 +235,6 @@ async function loadMatches(base) {
   }
 
   const liveMatches = arr.filter(isLive);
-
   const otherMatches = arr.filter(m => !isLive(m));
 
   const leagues = {};
@@ -257,12 +269,9 @@ async function loadMatches(base) {
     `;
   });
 
-  if (!arr.length) {
-    html = '<p>No matches available.</p>';
-  }
-
   $('#matchList').innerHTML = html;
 }
+
 
 
 async function loadTable(base) {
