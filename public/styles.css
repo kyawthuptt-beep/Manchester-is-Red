@@ -1129,3 +1129,7 @@ select:focus-visible {
 .team-profile-link:active {
   transform: scale(.98);
 }
+/* HIDDEN SECTION FIX */
+[hidden] {
+  display: none !important;
+}
