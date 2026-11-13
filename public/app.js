@@ -1136,13 +1136,31 @@ if ('IntersectionObserver' in window) {
   });
 
 }
-
 /* =========================================
    MAIN CLICK HANDLER
 ========================================= */
 
 document.addEventListener('click', e => {
 
+  // OPEN TEAM PROFILE
+  const teamProfileBtn =
+    e.target.closest('[data-open-team]');
+
+  if (teamProfileBtn) {
+    openTeamProfile(teamProfileBtn.dataset.openTeam);
+    return;
+  }
+
+  // CLOSE TEAM PROFILE
+  const closeTeamBtn =
+    e.target.closest('[data-close-team]');
+
+  if (closeTeamBtn) {
+    closeTeamProfile();
+    return;
+  }
+
+  // SAVE NEWS
   const saveBtn = e.target.closest('[data-save]');
 
   if (saveBtn) {
@@ -1150,6 +1168,7 @@ document.addEventListener('click', e => {
     return;
   }
 
+  // FOLLOW TEAM
   const followBtn = e.target.closest('[data-follow]');
 
   if (followBtn) {
@@ -1157,6 +1176,7 @@ document.addEventListener('click', e => {
     return;
   }
 
+  // UNFOLLOW TEAM
   const unfollowBtn = e.target.closest('[data-unfollow]');
 
   if (unfollowBtn) {
@@ -1164,6 +1184,7 @@ document.addEventListener('click', e => {
     return;
   }
 
+  // UNFOLLOW PLAYER
   const unfollowPlayerBtn =
     e.target.closest('[data-unfollow-player]');
 
@@ -1175,7 +1196,6 @@ document.addEventListener('click', e => {
   }
 
 });
-
 /* =========================================
    LEAGUE TABS
 ========================================= */
