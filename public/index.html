@@ -73,7 +73,42 @@
   <div class="stats"><div class="stat"><small data-my="နောက်ဆုံးစစ်ဆေးချိန်" data-en="LAST CHECKED">နောက်ဆုံးစစ်ဆေးချိန်</small><b id="lastChecked">—</b></div><div class="stat"><small data-my="ဒေသစံတော်ချိန်" data-en="YOUR LOCAL TIME">ဒေသစံတော်ချိန်</small><b id="localTime">—</b></div><div class="stat"><small data-my="ဒေတာအခြေအနေ" data-en="DATA MODE">ဒေတာအခြေအနေ</small><b id="dataMode">DEMO</b></div></div>
   <div class="toolbar"><button id="refreshBtn" class="primary" data-my="ဒေတာပြန်စစ်ရန် ↻" data-en="REFRESH DATA ↻">ဒေတာပြန်စစ်ရန် ↻</button><button id="notifyBtn" class="outline" data-my="အသိပေးချက်ခွင့်ပြုရန်" data-en="ENABLE ALERTS">အသိပေးချက်ခွင့်ပြုရန်</button><span class="small muted" data-my="App ဖွင့်ထားချိန်တွင်သာ refresh/alert လုပ်နိုင်သည်။" data-en="Refresh and alerts work while the app is open.">App ဖွင့်ထားချိန်တွင်သာ refresh/alert လုပ်နိုင်သည်။</span></div>
  </section>
- <section id="news" class="section pale">
+ 
+<section id="news" class="section pale">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">02 / GLOBAL NEWSROOM</p>
+      <h2
+        data-my="ကမ္ဘာ့ဘောလုံးသတင်းများ"
+        data-en="WORLD FOOTBALL NEWS">
+        ကမ္ဘာ့ဘောလုံးသတင်းများ
+      </h2>
+    </div>
+    <span class="pill">SOURCE-FIRST</span>
+  </div>
+
+  <div class="filters">
+    <input
+      id="newsSearch"
+      type="search"
+      placeholder="Search news / သတင်းရှာရန်">
+    <select id="newsFilter">
+      <option value="all">All categories / အားလုံး</option>
+      <option value="official">Official</option>
+      <option value="reported">Reported</option>
+      <option value="rumour">Rumour</option>
+    </select>
+  </div>
+
+  <div id="newsList" class="news-grid"></div>
+
+  <p class="disclaimer"
+    data-my="မှတ်ချက် — မူရင်းရင်းမြစ်မှ ထုတ်ပြန်သည့်အချိန်နှင့် အချက်အလက်ကို အမြဲစစ်ဆေးပါ။ ကောလာဟလကို အတည်ပြုပြီးသတင်းအဖြစ် မဖော်ပြပါ။"
+    data-en="Note: Always verify the original source and publication time. Rumours are never labelled as confirmed news.">
+    မှတ်ချက် — မူရင်းရင်းမြစ်မှ ထုတ်ပြန်သည့်အချိန်နှင့် အချက်အလက်ကို အမြဲစစ်ဆေးပါ။
+  </p>
+</section>
+
   <div class="section-head"><div><p class="eyebrow">02 / NEWSROOM</p><h2 data-my="မန်ယူသတင်းများ" data-en=<div class="section-head">
   <div>
     <p class="eyebrow">02 / GLOBAL NEWSROOM</p>
@@ -137,7 +172,55 @@
   <div class="section-head"><div><p class="eyebrow">05 / YOUR READING LIST</p><h2 data-my="သိမ်းထားသောသတင်းများ" data-en="SAVED STORIES">သိမ်းထားသောသတင်းများ</h2></div></div>
   <div id="savedList" class="news-grid"><div class="empty">No saved stories yet.</div></div>
  </section>
- <section id="sources" class="section pale">
+
+<section id="sources" class="section pale">
+
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">06 / TRUSTED SOURCES</p>
+      <h2
+        data-my="သတင်းရင်းမြစ်များ"
+        data-en="TRUSTED SOURCES">
+        သတင်းရင်းမြစ်များ
+      </h2>
+    </div>
+  </div>
+
+  <div class="source-grid">
+
+    <a href="https://www.manutd.com/en/news"
+       target="_blank" rel="noopener">
+      <b>Manchester United</b>
+      <span>Official club news ↗</span>
+    </a>
+
+    <a href="https://www.manutd.com/en/matches"
+       target="_blank" rel="noopener">
+      <b>Manchester United</b>
+      <span>Fixtures & results ↗</span>
+    </a>
+
+    <a href="https://www.premierleague.com"
+       target="_blank" rel="noopener">
+      <b>Premier League</b>
+      <span>Official competition data ↗</span>
+    </a>
+
+    <a href="https://www.bbc.com/sport/football"
+       target="_blank" rel="noopener">
+      <b>BBC Sport</b>
+      <span>Football news & analysis ↗</span>
+    </a>
+
+    <a href="https://www.skysports.com/football"
+       target="_blank" rel="noopener">
+      <b>Sky Sports</b>
+      <span>Football news & analysis ↗</span>
+    </a>
+
+  </div>
+</section>
+ 
  
 <div class="section-head">
   <div>
