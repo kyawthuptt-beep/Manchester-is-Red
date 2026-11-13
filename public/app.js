@@ -829,6 +829,9 @@ function renderFollowing() {
         </div>
       `).join('')}
     </div>
+ let followedPlayers = JSON.parse(
+  localStorage.getItem('fw-following-players') || '[]'
+);
   `;
 }
 
