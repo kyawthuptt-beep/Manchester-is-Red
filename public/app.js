@@ -13,7 +13,9 @@ let lang = localStorage.getItem('mir-lang') || 'my';
 let stories = [];
 let saved = JSON.parse(localStorage.getItem('mir-saved') || '[]');
 let followedTeams = JSON.parse(localStorage.getItem('fw-following') || '[]');
-
+let followedPlayers = JSON.parse(
+  localStorage.getItem('fw-following-players') || '[]'
+);
 let allMatches = [];
 let selectedDate = null;
 let scoreRefreshBusy = false;
@@ -829,9 +831,6 @@ function renderFollowing() {
         </div>
       `).join('')}
     </div>
- let followedPlayers = JSON.parse(
-  localStorage.getItem('fw-following-players') || '[]'
-);
   `;
 }
 
