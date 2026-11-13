@@ -271,6 +271,39 @@ const matches=(data.matches||[]).map(m=>({
 });
 
 
+app.get("/api/live-test",async(req,res)=>{
+ try{
+  const data=await football("/matches?status=LIVE");
+
+  const matches=(data.matches||[]).map(m=>({
+   id:m.id,
+   competition:m.competition?.name||"Competition",
+   home:m.homeTeam?.name||"TBC",
+   away:m.awayTeam?.name||"TBC",
+   score:`${m.score?.fullTime?.home??0} - ${m.score?.fullTime?.away??0}`,
+   status:m.status,
+   minute:m.minute??null,
+   injuryTime:m.injuryTime??null
+  }));
+
+  res.json({
+   mode:"live",
+   source:"football-data.org LIVE Filter",
+   count:matches.length,
+   matches
+  });
+
+ }catch(e){
+  console.error("Live test error:",e.message);
+
+  res.status(502).json({
+   mode:"error",
+   error:e.message,
+   matches:[]
+  });
+ }
+});
+
 
 app.get("/api/standings",async(req,res)=>{
  const leagues={
