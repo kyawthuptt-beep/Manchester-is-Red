@@ -1028,17 +1028,10 @@ if ('IntersectionObserver' in window) {
   });
 
 }
+
 /* =========================================
    MAIN CLICK HANDLER
 ========================================= */
-
-  const teamProfileBtn = e.target.closest('[data-open-team]');
-
-  if (teamProfileBtn) {
-    const team = teamProfileBtn.dataset.openTeam;
-     
-    return;
-  }
 
 document.addEventListener('click', e => {
 
@@ -1053,13 +1046,6 @@ document.addEventListener('click', e => {
 
   if (followBtn) {
     toggleFollowing(followBtn.dataset.follow);
-    return;
-  }
-   
-  if (teamProfileBtn) {
-    const team = teamProfileBtn.dataset.openTeam;
-
-    openTeamProfile(team);
     return;
   }
 
