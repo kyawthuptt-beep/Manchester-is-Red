@@ -877,19 +877,73 @@ function toggleSaved(id) {
 }
 
 
+
 /* =========================================
    BOTTOM NAVIGATION
+   FOOTBALL WORLD
 ========================================= */
 
-document.querySelectorAll('.nav-item').forEach(item => {
-  item.addEventListener('click', () => {
-    document.querySelectorAll('.nav-item').forEach(nav => {
-      nav.classList.remove('active');
-    });
+const navItems = document.querySelectorAll('.nav-item');
 
-    item.classList.add('active');
+function setActiveNav(id) {
+  navItems.forEach(item => {
+    const isActive = item.getAttribute('href') === '#' + id;
+
+    item.classList.toggle('active', isActive);
   });
+}
+
+// Navigation Click
+navItems.forEach(item => {
+
+  item.addEventListener('click', () => {
+
+    const targetId = item.getAttribute('href').slice(1);
+
+    const target = document.getElementById(targetId);
+
+    if (!target) return;
+
+    setActiveNav(targetId);
+
+  });
+
 });
+
+// Automatic Active Navigation on Scroll
+if ('IntersectionObserver' in window) {
+
+  const navObserver = new IntersectionObserver(entries => {
+
+    const visible = entries
+      .filter(entry => entry.isIntersecting)
+      .sort((a, b) =>
+        b.intersectionRatio - a.intersectionRatio
+      );
+
+    if (visible.length) {
+      setActiveNav(visible[0].target.id);
+    }
+
+  }, {
+    root: null,
+    rootMargin: '-15% 0px -55% 0px',
+    threshold: [0, 0.1, 0.25, 0.5]
+  });
+
+  navItems.forEach(item => {
+
+    const id = item.getAttribute('href').slice(1);
+    const section = document.getElementById(id);
+
+    if (section) {
+      navObserver.observe(section);
+    }
+
+  });
+
+}
+
 
 
 /* =========================================
