@@ -213,10 +213,10 @@ app.get("/api/matches",async(req,res)=>{
   const today=new Date();
 
   const dateFrom=new Date(today);
-  dateFrom.setUTCDate(dateFrom.getUTCDate()-14);
-
+  
+dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
   const dateTo=new Date(today);
-  dateTo.setUTCDate(dateTo.getUTCDate()+21);
+  dateTo.setUTCDate(dateTo.getUTCDate()+5);
 
   const formatDate=d=>
    d.toISOString().slice(0,10);
