@@ -812,7 +812,112 @@ function renderFollowing() {
 
     return;
   }
+/* =========================================
+   TEAM PROFILE
+========================================= */
 
+function openTeamProfile(team) {
+
+  const followingSection = $('#following');
+  const profileSection = $('#teamProfile');
+
+  if (!followingSection || !profileSection) return;
+
+  const teamName = String(team || '').trim();
+
+  $('#teamProfileName').textContent = teamName;
+
+  $('#teamProfileInfo').textContent =
+    'FOOTBALL WORLD • Team Profile';
+
+  const normalize = value =>
+    String(value || '').trim().toLowerCase();
+
+  // TEAM MATCHES
+  const teamMatches = allMatches.filter(m =>
+    normalize(m.home) === normalize(teamName) ||
+    normalize(m.away) === normalize(teamName)
+  );
+
+  const pastMatches = teamMatches.filter(isFinishedMatch);
+
+  const upcomingMatches = teamMatches.filter(m =>
+    !isFinishedMatch(m)
+  );
+
+  // UPCOMING FIXTURES
+  $('#teamUpcomingMatches').innerHTML =
+    upcomingMatches.length
+      ? upcomingMatches.map(renderMatch).join('')
+      : '<p>No upcoming fixtures available.</p>';
+
+  // PAST RESULTS
+  $('#teamPastResults').innerHTML =
+    pastMatches.length
+      ? pastMatches.map(renderMatch).join('')
+      : '<p>No past results available.</p>';
+
+  // LEAGUE POSITION
+  const standing = currentStandings.find(x =>
+    normalize(x.team) === normalize(teamName)
+  );
+
+  $('#teamLeaguePosition').innerHTML =
+    standing
+      ? `
+        <strong>${esc(teamName)}</strong>
+        <p>
+          Position: ${esc(standing.position)} |
+          Points: ${esc(standing.points)}
+        </p>
+        <p>League: ${esc(currentLeague)}</p>
+      `
+      : '<p>League position is not available in the currently selected league.</p>';
+
+  // TEAM NEWS
+  const teamStories = stories.filter(s => {
+    const content = [
+      s.title,
+      s.my,
+      s.desc,
+      s.description
+    ].join(' ');
+
+    return normalize(content).includes(normalize(teamName));
+  });
+
+  $('#teamNews').innerHTML =
+    teamStories.length
+      ? teamStories.slice(0, 5).map(s => `
+          <div class="team-news-item">
+            <strong>${esc(s.title || s.my || 'Football News')}</strong>
+            <p>${esc(s.desc || s.description || '')}</p>
+          </div>
+        `).join('')
+      : '<p>No matching team news available.</p>';
+
+  followingSection.hidden = true;
+  profileSection.hidden = false;
+
+  profileSection.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start'
+  });
+}
+
+
+// CLOSE TEAM PROFILE
+function closeTeamProfile() {
+
+  $('#teamProfile').hidden = true;
+  $('#following').hidden = false;
+
+  $('#following').scrollIntoView({
+    behavior: 'smooth',
+    block: 'start'
+  });
+
+}
   container.innerHTML = `
     <div class="feature-icon">⭐</div>
 
