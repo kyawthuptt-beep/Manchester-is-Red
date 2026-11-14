@@ -794,6 +794,12 @@ function renderFollowing() {
 
   if (!container) return;
 
+  
+function renderFollowing() {
+  const container = $('#following .feature-placeholder');
+
+  if (!container) return;
+
   if (!followedTeams.length) {
     container.innerHTML = `
       <div class="feature-icon">⭐</div>
@@ -811,7 +817,9 @@ function renderFollowing() {
     `;
 
     return;
-   container.innerHTML = `
+  }
+
+  container.innerHTML = `
     <div class="feature-icon">⭐</div>
 
     <h3>
@@ -838,8 +846,9 @@ function renderFollowing() {
         </div>
       `).join('')}
     </div>
-  `; 
-  }
+  `;
+}
+
 /* =========================================
    TEAM PROFILE
 ========================================= */
