@@ -1179,3 +1179,93 @@ select:focus-visible {
   background: #ffffff;
   padding: 8px;
 }
+/* =========================================
+   FOOTBALL WORLD
+   MATCH CENTRE — LIVE / RESULTS / FIXTURES
+========================================= */
+
+/* Main match categories */
+#matchList.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Category container */
+.match-category {
+  width: 100%;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+/* Category heading */
+.match-category > h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--border);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: .3px;
+}
+
+/* League groups */
+.match-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.match-group h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--red);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Live category */
+.match-category:has(.match .live) > h2 {
+  color: #ff5269;
+}
+
+/* Finished results */
+.match-category:has(.match .finished) > h2 {
+  color: var(--green);
+}
+
+/* Upcoming fixtures */
+.match-category:last-child > h2 {
+  color: var(--yellow);
+}
+
+/* Match card inside category */
+.match-group .match {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mobile layout */
+@media (max-width: 760px) {
+  .match-category {
+    padding: 12px;
+  }
+
+  .match-group {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .match-category > h2 {
+    font-size: 14px;
+  }
+}
