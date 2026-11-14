@@ -221,7 +221,7 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
   const formatDate=d=>
    d.toISOString().slice(0,10);
 
-  const competitions="PL,PD,SA,BL1,FL1";
+  `/matches?dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
 
   const data=await football(
    `/matches?competitions=${competitions}&dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
