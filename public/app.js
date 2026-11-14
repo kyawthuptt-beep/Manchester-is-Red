@@ -459,14 +459,34 @@ function renderMatch(m) {
       </div>
 
       <div class="match-teams">
-        <b>${esc(home)}</b>
 
-        <span class="score">
-          ${esc(m.score || '—')}
-        </span>
+  <div class="match-team">
+    ${m.homeLogo ? `
+      <img
+        src="${safeUrl(m.homeLogo)}"
+        alt="${esc(home)}"
+        class="team-logo">
+    ` : ''}
 
-        <b>${esc(away)}</b>
-      </div>
+    <b>${esc(home)}</b>
+  </div>
+
+  <span class="score">
+    ${esc(m.score || '—')}
+  </span>
+
+  <div class="match-team">
+    ${m.awayLogo ? `
+      <img
+        src="${safeUrl(m.awayLogo)}"
+        alt="${esc(away)}"
+        class="team-logo">
+    ` : ''}
+
+    <b>${esc(away)}</b>
+  </div>
+
+</div>
 
       <small>${esc(formatMatchDate(m.date))}</small>
 
