@@ -648,7 +648,13 @@ currentLeague = league;
         ${rows.map(x => `
           <tr>
             <td>${esc(x.position)}</td>
-            <td>${esc(x.team)}</td>
+            <td>
+  <button
+    class="team-profile-link"
+    data-open-team="${esc(x.team)}">
+    ${esc(x.team)}
+  </button>
+</td>
             <td>${esc(x.played)}</td>
             <td>${esc(x.won)}</td>
             <td>${esc(x.drawn)}</td>
