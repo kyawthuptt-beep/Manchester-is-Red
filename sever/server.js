@@ -218,17 +218,10 @@ dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
   const dateTo=new Date(today);
   dateTo.setUTCDate(dateTo.getUTCDate()+5);
 
-  const formatDate=d=>
-   d.toISOString().slice(0,10);
-
-  `/matches?dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
+  const competitions="PL,PD,SA,BL1,FL1";
 
   const data=await football(
-   `/matches?competitions=${competitions}&dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
-  );
-
-
-
+   `/matches?dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
 const matches=(data.matches||[]).map(m=>({
    date:m.utcDate
     ?new Date(m.utcDate).toLocaleString("en-GB",{
