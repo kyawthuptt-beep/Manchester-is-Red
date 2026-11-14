@@ -285,6 +285,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // MATCHES API
+
 app.get("/api/matches", async (req, res) => {
   if (!TOKEN) {
     return res.json({
@@ -298,6 +299,8 @@ app.get("/api/matches", async (req, res) => {
 
     let dateFrom;
     let dateTo;
+    let localStart = null;
+    let localEnd = null;
 
     if (requestedDate) {
       if (
@@ -326,8 +329,44 @@ app.get("/api/matches", async (req, res) => {
         });
       }
 
-      dateFrom = requestedDate;
-      dateTo = requestedDate;
+      // Browser timezone offset: UTC - local time, in minutes
+      const timezoneOffset =
+        req.query.timezoneOffset === undefined
+          ? 0
+          : Number(req.query.timezoneOffset);
+
+      if (
+        !Number.isInteger(timezoneOffset) ||
+        timezoneOffset < -840 ||
+        timezoneOffset > 840
+      ) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid timezone offset",
+          matches: []
+        });
+      }
+
+      // Convert selected local day into UTC boundaries
+      localStart = new Date(
+        selected.getTime() + timezoneOffset * 60000
+      );
+
+      localEnd = new Date(
+        localStart.getTime() + 86400000
+      );
+
+      dateFrom = formatDate(localStart);
+
+      // football-data.org dateTo is exclusive.
+      // Include the final UTC calendar date in the search.
+      dateTo = formatDate(
+        new Date(Date.UTC(
+          localEnd.getUTCFullYear(),
+          localEnd.getUTCMonth(),
+          localEnd.getUTCDate() + 1
+        ))
+      );
 
     } else {
       const today = new Date();
@@ -342,16 +381,28 @@ app.get("/api/matches", async (req, res) => {
       dateTo = formatDate(to);
     }
 
-    // USE EXACT DATE FILTER WHEN DATE IS SELECTED
-    const matchesPath = requestedDate
-      ? `/matches?date=${requestedDate}`
-      : `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+    const matchesPath =
+      `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
 
     const data = await football(matchesPath);
 
-    // SORT USING ORIGINAL UTC KICKOFF TIME
-    const rawMatches = [...(data.matches || [])];
+    let rawMatches = [...(data.matches || [])];
 
+    // Filter exact local-day boundaries
+    if (localStart && localEnd) {
+      rawMatches = rawMatches.filter(m => {
+        if (!m.utcDate) return false;
+
+        const kickoff = new Date(m.utcDate);
+
+        return (
+          kickoff >= localStart &&
+          kickoff < localEnd
+        );
+      });
+    }
+
+    // Sort by UTC kickoff time
     rawMatches.sort((a, b) => {
       return (
         new Date(a.utcDate || 0).getTime() -
@@ -409,6 +460,7 @@ app.get("/api/matches", async (req, res) => {
     });
   }
 });
+
 
 // LIVE MATCH TEST
 app.get("/api/live-test", async (req, res) => {
