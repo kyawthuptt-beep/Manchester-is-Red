@@ -330,18 +330,19 @@ function formatMatchDate(value) {
 
 
 
+
 function dateKey(d) {
   return [
-    d.getUTCFullYear(),
-    String(d.getUTCMonth() + 1).padStart(2, '0'),
-    String(d.getUTCDate()).padStart(2, '0')
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')
   ].join('-');
 }
-
 
 function todayKey() {
   return dateKey(new Date());
 }
+
 
 
 function updateDateLabel() {
@@ -373,39 +374,21 @@ function updateDateLabel() {
 }
 
 
+
+
 function changeMatchDate(amount) {
   const current = selectedDate || todayKey();
 
-  const d = new Date(current + 'T12:00:00Z');
+  const d = new Date(current + 'T12:00:00');
 
-  d.setUTCDate(d.getUTCDate() + amount);
+  d.setDate(d.getDate() + amount);
 
   selectedDate = dateKey(d);
 
   updateDateLabel();
-  renderMatches();
+  loadMatches(API_BASE);
 }
 
-
-if ($('#datePrevBtn')) {
-  $('#datePrevBtn').addEventListener('click', () => {
-    changeMatchDate(-1);
-  });
-}
-
-if ($('#dateNextBtn')) {
-  $('#dateNextBtn').addEventListener('click', () => {
-    changeMatchDate(1);
-  });
-}
-
-if ($('#dateTodayBtn')) {
-  $('#dateTodayBtn').addEventListener('click', () => {
-    selectedDate = todayKey();
-    updateDateLabel();
-    renderMatches();
-  });
-}
 
 
 /* =========================================
