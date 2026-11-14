@@ -794,12 +794,6 @@ function renderFollowing() {
 
   if (!container) return;
 
-  
-function renderFollowing() {
-  const container = $('#following .feature-placeholder');
-
-  if (!container) return;
-
   if (!followedTeams.length) {
     container.innerHTML = `
       <div class="feature-icon">⭐</div>
