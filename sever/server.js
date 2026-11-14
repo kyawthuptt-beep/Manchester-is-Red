@@ -386,6 +386,26 @@ app.get("/api/matches", async (req, res) => {
 
     const data = await football(matchesPath);
 
+const liveMatches = (data.matches || []).filter(m =>
+  ["IN_PLAY", "PAUSED", "HALFTIME"].includes(m.status)
+);
+
+console.log(
+  "LIVE MATCH MINUTE CHECK:",
+  JSON.stringify(
+    liveMatches.map(m => ({
+      id: m.id,
+      home: m.homeTeam?.name,
+      away: m.awayTeam?.name,
+      status: m.status,
+      minute: m.minute,
+      score: m.score
+    })),
+    null,
+    2
+  )
+);
+
     let rawMatches = [...(data.matches || [])];
 
     // Filter exact local-day boundaries
