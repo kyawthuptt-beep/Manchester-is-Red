@@ -606,7 +606,14 @@ function renderMatches() {
 }
 
 async function loadMatches(base) {
-  const r = await fetch(base + '/matches', {
+  const url = new URL(base + '/matches');
+
+  // Selected date filter
+  if (selectedDate) {
+    url.searchParams.set('date', selectedDate);
+  }
+
+  const r = await fetch(url.toString(), {
     cache: 'no-store'
   });
 
@@ -624,7 +631,6 @@ async function loadMatches(base) {
 
   renderMatches();
 }
-
 
 /* =========================================
    LEAGUE TABLE
