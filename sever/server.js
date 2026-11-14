@@ -34,7 +34,9 @@ const demoTable=[
  {position:1,team:"Team data unavailable",played:"—",won:"—",drawn:"—",lost:"—",points:"—"},
  {position:2,team:"Manchester United",played:"—",won:"—",drawn:"—",lost:"—",points:"—"}
 ];
-
+function formatDate(d){
+ return d.toISOString().slice(0,10);
+}
 async function football(pathname){
  const response=await fetch(
   "https://api.football-data.org/v4"+pathname,
