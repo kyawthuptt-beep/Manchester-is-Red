@@ -883,7 +883,32 @@ function openTeamProfile(team) {
 
   const normalize = value =>
     String(value || '').trim().toLowerCase();
+// TEAM PROFILE LOGO
+const logoMatch = allMatches.find(m =>
+  (
+    normalize(m.home) === normalize(teamName) &&
+    m.homeLogo
+  ) ||
+  (
+    normalize(m.away) === normalize(teamName) &&
+    m.awayLogo
+  )
+);
 
+const teamLogo = $('#teamProfileLogo');
+
+if (teamLogo) {
+  const logoUrl = logoMatch
+    ? (
+        normalize(logoMatch.home) === normalize(teamName)
+          ? logoMatch.homeLogo
+          : logoMatch.awayLogo
+      )
+    : '';
+
+  teamLogo.src = logoUrl ? safeUrl(logoUrl) : '';
+  teamLogo.hidden = !logoUrl;
+}
   // TEAM MATCHES
   const teamMatches = allMatches.filter(m =>
     normalize(m.home) === normalize(teamName) ||
