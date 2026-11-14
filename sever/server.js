@@ -226,73 +226,120 @@ app.get("/api/health",(req,res)=>{
  });
 });
 
+app.get("/api/matches", async (req, res) => {
+  if (!TOKEN) {
+    return res.json({
+      mode: "demo",
+      matches: demoMatches
+    });
+  }
 
-app.get("/api/matches",async(req,res)=>{
- if(!TOKEN){
-  return res.json({
-   mode:"demo",
-   matches:demoMatches
-  });
- }
+  try {
+    const requestedDate = req.query.date;
 
- try{
-  const today=new Date();
+    let dateFrom;
+    let dateTo;
 
-  const dateFrom=new Date(today);
-  
-dateFrom.setUTCDate(dateFrom.getUTCDate()-5);
-  const dateTo=new Date(today);
-  dateTo.setUTCDate(dateTo.getUTCDate()+5);
+    if (requestedDate) {
+      // Validate YYYY-MM-DD
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid date format. Use YYYY-MM-DD",
+          matches: []
+        });
+      }
 
-  const competitions="PL,PD,SA,BL1,FL1";
-const data=await football(
- `/matches?dateFrom=${formatDate(dateFrom)}&dateTo=${formatDate(dateTo)}`
-);
+      const selected = new Date(requestedDate + "T00:00:00Z");
 
-const matches=(data.matches||[]).map(m=>({
-   date:m.utcDate
-    ?new Date(m.utcDate).toLocaleString("en-GB",{
-      dateStyle:"medium",
-      timeStyle:"short",
-      timeZone:"UTC"
-     })+" UTC"
-    :"TBC",
+      if (
+        isNaN(selected.getTime()) ||
+        selected.toISOString().slice(0, 10) !== requestedDate
+      ) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid calendar date",
+          matches: []
+        });
+      }
 
-   competition:m.competition?.name||"Competition",
-   home:m.homeTeam?.name||"TBC",
-homeLogo:m.homeTeam?.crest||"",
+      dateFrom = requestedDate;
+      dateTo = requestedDate;
 
-away:m.awayTeam?.name||"TBC",
-awayLogo:m.awayTeam?.crest||"",
+    } else {
+      // Default: 5 days before and after today
+      const today = new Date();
 
-  score:m.score?.fullTime?.home!=null
- ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
- :m.status,
+      dateFrom = new Date(today);
+      dateFrom.setUTCDate(dateFrom.getUTCDate() - 5);
 
-   status:m.status,
-   minute:m.minute??null,
-   injuryTime:m.injuryTime??null
-  }));
+      dateTo = new Date(today);
+      dateTo.setUTCDate(dateTo.getUTCDate() + 5);
 
+      dateFrom = formatDate(dateFrom);
+      dateTo = formatDate(dateTo);
+    }
 
+    const data = await football(
+      `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
+    );
 
-  res.json({
-   mode:"live",
-   source:"Global Football Matches",
-   matches
-  });
+    const matches = (data.matches || []).map(m => ({
+      id: m.id,
+      date: m.utcDate
+        ? new Date(m.utcDate).toLocaleString("en-GB", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "UTC"
+          }) + " UTC"
+        : "TBC",
 
- }catch(e){
-  console.error("Matches error:",e.message);
+      competition: m.competition?.name || "Competition",
 
-  res.status(502).json({
-   mode:"error",
-   error:e.message,
-   matches:[]
-  });
- }
+      home: m.homeTeam?.name || "TBC",
+      homeLogo: m.homeTeam?.crest || "",
+
+      away: m.awayTeam?.name || "TBC",
+      awayLogo: m.awayTeam?.crest || "",
+
+      score:
+        m.score?.fullTime?.home != null
+          ? `${m.score.fullTime.home} - ${m.score.fullTime.away}`
+          : m.status,
+
+      status: m.status,
+      minute: m.minute ?? null,
+      injuryTime: m.injuryTime ?? null
+    }));
+
+    // Sort by kickoff time
+    matches.sort((a, b) => {
+      if (a.date === "TBC") return 1;
+      if (b.date === "TBC") return -1;
+
+      return new Date(a.date).getTime() -
+             new Date(b.date).getTime();
+    });
+
+    res.json({
+      mode: "live",
+      source: "Global Football Matches",
+      dateFrom,
+      dateTo,
+      total: matches.length,
+      matches
+    });
+
+  } catch (e) {
+    console.error("Matches error:", e.message);
+
+    res.status(502).json({
+      mode: "error",
+      error: e.message,
+      matches: []
+    });
+  }
 });
-
 
 app.get("/api/live-test",async(req,res)=>{
  try{
