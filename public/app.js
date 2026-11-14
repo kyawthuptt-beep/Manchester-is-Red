@@ -605,13 +605,20 @@ function renderMatches() {
   list.innerHTML = html;
 }
 
+
 async function loadMatches(base) {
   const url = new URL(base + '/matches');
 
-  // Selected date filter
+  // Send selected local date
   if (selectedDate) {
     url.searchParams.set('date', selectedDate);
   }
+
+  // Send device timezone offset
+  url.searchParams.set(
+    'timezoneOffset',
+    String(new Date().getTimezoneOffset())
+  );
 
   const r = await fetch(url.toString(), {
     cache: 'no-store'
@@ -631,6 +638,7 @@ async function loadMatches(base) {
 
   renderMatches();
 }
+
 
 /* =========================================
    LEAGUE TABLE
