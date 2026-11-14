@@ -240,7 +240,10 @@ const matches=(data.matches||[]).map(m=>({
 
    competition:m.competition?.name||"Competition",
    home:m.homeTeam?.name||"TBC",
-   away:m.awayTeam?.name||"TBC",
+homeLogo:m.homeTeam?.crest||"",
+
+away:m.awayTeam?.name||"TBC",
+awayLogo:m.awayTeam?.crest||"",
 
   score:m.score?.fullTime?.home!=null
  ?`${m.score.fullTime.home} - ${m.score.fullTime.away}`
