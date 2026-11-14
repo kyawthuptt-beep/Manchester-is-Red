@@ -401,8 +401,8 @@ app.get("/api/standings", async (req, res) => {
   try {
 
     const data = await football(
-      `/competitions/${league}/standings`
-    );
+  `/competitions/${league}/standings?season=2026`
+);
 
     const standing =
       data.standings?.find(
