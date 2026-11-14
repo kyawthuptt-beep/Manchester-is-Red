@@ -1466,7 +1466,31 @@ renderPlayerFollowing();
 updateDateLabel();
 localClock();
 
+
 loadLive();
 loadOfficialNews();
 
+// AUTO REFRESH MATCH DATA
+let matchRefreshTimer = null;
+
+function startMatchAutoRefresh() {
+  if (matchRefreshTimer) {
+    clearInterval(matchRefreshTimer);
+  }
+
+  matchRefreshTimer = setInterval(async () => {
+    if (document.hidden) return;
+
+    try {
+      await loadMatches(API_BASE);
+      console.log('FOOTBALL WORLD: Match data refreshed');
+    } catch (error) {
+      console.error('Match auto-refresh error:', error);
+    }
+  }, 60000);
+}
+
+startMatchAutoRefresh();
+
 console.log('FOOTBALL WORLD APP STARTED');
+
