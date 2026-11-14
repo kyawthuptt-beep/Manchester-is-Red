@@ -97,6 +97,17 @@ function safeUrl(u) {
   }
 }
 
+function isOfflineError(error) {
+  return !navigator.onLine || error instanceof TypeError;
+}
+
+function offlineMessage() {
+  return t(
+    'အင်တာနက်ချိတ်ဆက်မှု မရှိပါ။ အင်တာနက်ပြန်ရရှိပါက အလိုအလျောက် ပြန်လည်ရယူပါမည်။',
+    'No internet connection. Data will reload when you are back online.'
+  );
+}
+
 function label(c) {
   return c === 'official'
     ? 'OFFICIAL'
@@ -222,6 +233,7 @@ function renderStories() {
 }
 
 
+
 async function loadOfficialNews() {
   const list = $('#newsList');
 
@@ -264,20 +276,13 @@ async function loadOfficialNews() {
     console.error('News loading error:', e);
 
     if (list) {
-      list.innerHTML =
-        '<div class="empty">သတင်းရယူမှု မအောင်မြင်ပါ။ ခဏနေ ပြန်စမ်းကြည့်ပါ။ / News unavailable.</div>';
+      list.innerHTML = isOfflineError(e)
+        ? '<div class="empty">' + esc(offlineMessage()) + '</div>'
+        : '<div class="empty">သတင်းရယူမှု မအောင်မြင်ပါ။ ခဏနေ ပြန်စမ်းကြည့်ပါ။ / News unavailable.</div>';
     }
   }
 }
 
-
-if ($('#newsSearch')) {
-  $('#newsSearch').addEventListener('input', renderStories);
-}
-
-if ($('#newsFilter')) {
-  $('#newsFilter').addEventListener('change', renderStories);
-}
 
 
 /* =========================================
@@ -741,6 +746,8 @@ async function loadTable(base) {
    API CONNECTION
 ========================================= */
 
+
+
 async function loadLive() {
   $('#matchList').innerHTML =
     '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
@@ -777,29 +784,34 @@ async function loadLive() {
 
     if (matchesOK && tableOK) {
       $('#apiDot').classList.add('ok');
-
       $('#apiStatus').textContent =
         t('Live Data ချိတ်ဆက်ထားသည်', 'LIVE DATA CONNECTED');
-
       $('#dataMode').textContent = 'LIVE';
 
     } else {
       $('#apiDot').classList.remove('ok');
-
       $('#apiStatus').textContent = 'PARTIAL API ERROR';
       $('#dataMode').textContent = 'PARTIAL';
 
       if (!matchesOK) {
+        const error = results[0].reason;
+
         $('#matchList').innerHTML =
-          '<div class="empty">Fixtures Error: ' +
-          esc(results[0].reason?.message || 'Unknown error') +
+          '<div class="empty">' +
+          esc(isOfflineError(error)
+            ? offlineMessage()
+            : 'Fixtures unavailable. Please try again.') +
           '</div>';
       }
 
       if (!tableOK) {
+        const error = results[1].reason;
+
         $('#tableWrap').innerHTML =
-          '<div class="empty">Standings Error: ' +
-          esc(results[1].reason?.message || 'Unknown error') +
+          '<div class="empty">' +
+          esc(isOfflineError(error)
+            ? offlineMessage()
+            : 'Standings unavailable. Please try again.') +
           '</div>';
       }
     }
@@ -808,14 +820,27 @@ async function loadLive() {
     console.error('API connection error:', e);
 
     $('#apiDot').classList.remove('ok');
-    $('#apiStatus').textContent = 'API CONNECTION ERROR';
-    $('#dataMode').textContent = 'ERROR';
 
-    $('#matchList').innerHTML =
-      '<div class="empty">API Error: ' + esc(e.message) + '</div>';
+    if (isOfflineError(e)) {
+      $('#apiStatus').textContent = 'OFFLINE';
+      $('#dataMode').textContent = 'OFFLINE';
 
-    $('#tableWrap').innerHTML =
-      '<div class="empty">API Error: ' + esc(e.message) + '</div>';
+      $('#matchList').innerHTML =
+        '<div class="empty">' + esc(offlineMessage()) + '</div>';
+
+      $('#tableWrap').innerHTML =
+        '<div class="empty">' + esc(offlineMessage()) + '</div>';
+
+    } else {
+      $('#apiStatus').textContent = 'API CONNECTION ERROR';
+      $('#dataMode').textContent = 'ERROR';
+
+      $('#matchList').innerHTML =
+        '<div class="empty">Fixtures unavailable. Please try again.</div>';
+
+      $('#tableWrap').innerHTML =
+        '<div class="empty">Standings unavailable. Please try again.</div>';
+    }
   }
 
   stamp();
@@ -1518,6 +1543,25 @@ function startMatchAutoRefresh() {
 }
 
 startMatchAutoRefresh();
+
+window.addEventListener('online', () => {
+  console.log('FOOTBALL WORLD: Internet restored');
+
+  loadLive();
+  loadOfficialNews();
+});
+
+window.addEventListener('offline', () => {
+  $('#apiDot')?.classList.remove('ok');
+
+  if ($('#apiStatus')) {
+    $('#apiStatus').textContent = 'OFFLINE';
+  }
+
+  if ($('#dataMode')) {
+    $('#dataMode').textContent = 'OFFLINE';
+  }
+});
 
 console.log('FOOTBALL WORLD APP STARTED');
 
