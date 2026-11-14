@@ -913,11 +913,14 @@ try {
   }
 
   // FIND TEAM ID
-  const teamData = openTeamProfile.teamDirectory.find(x =>
-    normalize(x.name) === normalize(teamName) ||
-    normalize(x.shortName) === normalize(teamName) ||
-    normalize(x.tla) === normalize(teamName)
-  );
+  const cleanName = value =>
+  normalize(value).replace(/\s+fc$/i, '');
+
+const teamData = openTeamProfile.teamDirectory.find(x =>
+  cleanName(x.name) === cleanName(teamName) ||
+  normalize(x.shortName) === normalize(teamName) ||
+  normalize(x.tla) === normalize(teamName)
+);
 
   if (!teamData) {
     throw new Error('Team not found');
