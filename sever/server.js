@@ -412,6 +412,64 @@ app.get("/api/standings",async(req,res)=>{
 });
 
 // TEAM PROFILE API
+// ALL TEAMS API
+app.get("/api/teams",async(req,res)=>{
+
+ if(!TOKEN){
+  return res.status(503).json({
+   mode:"error",
+   message:"Football API token is required"
+  });
+ }
+
+ const leagues=["PL","PD","SA","BL1","FL1"];
+ const teamMap=new Map();
+
+ try{
+
+  for(const league of leagues){
+
+   try{
+    const data=await football(
+     `/competitions/${league}/teams`
+    );
+
+    (data.teams||[]).forEach(team=>{
+     teamMap.set(team.id,{
+      id:team.id,
+      name:team.name||"",
+      shortName:team.shortName||"",
+      tla:team.tla||"",
+      crest:team.crest||"",
+      venue:team.venue||"",
+      founded:team.founded||null
+     });
+    });
+
+   }catch(error){
+    console.log(
+     "League error:",
+     league,
+     error.message
+    );
+   }
+  }
+
+  res.json({
+   mode:"live",
+   count:teamMap.size,
+   teams:[...teamMap.values()]
+  });
+
+ }catch(error){
+
+  res.status(502).json({
+   mode:"error",
+   message:error.message
+  });
+
+ }
+});
 app.get("/api/team/:id",async(req,res)=>{
 
  const teamId=Number(req.params.id);
