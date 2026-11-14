@@ -614,9 +614,16 @@ async function loadTable(base) {
     { cache: 'no-store' }
   );
 
-  if (!r.ok) {
-    throw Error('Standings API: ' + r.status);
-  }
+ if (!r.ok) {
+  const errorText = await r.text();
+
+  throw Error(
+    'Standings API: ' +
+    r.status +
+    ' - ' +
+    errorText
+  );
+} 
 
   const j = await r.json();
 
