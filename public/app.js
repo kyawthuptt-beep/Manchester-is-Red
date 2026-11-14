@@ -510,7 +510,6 @@ function renderMatch(m) {
   `;
 }
 
-
 function renderMatches() {
   const list = $('#matchList');
 
@@ -518,10 +517,10 @@ function renderMatches() {
 
   let arr = [...allMatches];
 
+  // FILTER BY SELECTED DATE
   if (selectedDate) {
     arr = arr.filter(m => {
       const d = getMatchDate(m.date);
-
       return d && dateKey(d) === selectedDate;
     });
   }
@@ -532,53 +531,86 @@ function renderMatches() {
         <span>⚽</span>
         <p>
           ${selectedDate
-            ? 'ဒီနေ့အတွက် ပြသနိုင်သော ပွဲစဉ်မရှိသေးပါ။ / No matches for this date.'
-            : 'လက်ရှိပြသနိုင်သော ပွဲစဉ်မရှိသေးပါ။ / No matches available.'}
+            ? 'ရွေးချယ်ထားသောနေ့တွင် ပွဲစဉ်မရှိပါ။ / No matches for this date.'
+            : 'ပြသနိုင်သော ပွဲစဉ်မရှိသေးပါ။ / No matches available.'}
         </p>
       </div>
     `;
-
     return;
   }
 
+  // SEPARATE MATCH TYPES
   const liveMatches = arr.filter(isLiveMatch);
-  const otherMatches = arr.filter(m => !isLiveMatch(m));
 
-  const leagues = {};
+  const finishedMatches = arr.filter(isFinishedMatch);
 
-  otherMatches.forEach(m => {
-    const league = m.competition || 'OTHER MATCHES';
+  const upcomingMatches = arr.filter(m =>
+    !isLiveMatch(m) && !isFinishedMatch(m)
+  );
 
-    if (!leagues[league]) {
-      leagues[league] = [];
-    }
+  // GROUP MATCHES BY LEAGUE
+  function groupByLeague(matches) {
+    const groups = {};
 
-    leagues[league].push(m);
-  });
+    matches.forEach(m => {
+      const league = m.competition || 'OTHER MATCHES';
+
+      if (!groups[league]) {
+        groups[league] = [];
+      }
+
+      groups[league].push(m);
+    });
+
+    return groups;
+  }
+
+  // RENDER MATCH GROUP
+  function renderLeagueGroups(matches) {
+    const groups = groupByLeague(matches);
+
+    return Object.keys(groups).map(league => `
+      <section class="match-group">
+        <h3>${esc(league)}</h3>
+        ${groups[league].map(renderMatch).join('')}
+      </section>
+    `).join('');
+  }
 
   let html = '';
 
+  // LIVE MATCHES
   if (liveMatches.length) {
     html += `
-      <section class="match-group">
-        <h3>🔴 LIVE MATCHES</h3>
-        ${liveMatches.map(renderMatch).join('')}
+      <section class="match-category">
+        <h2>🔴 LIVE MATCHES</h2>
+        ${renderLeagueGroups(liveMatches)}
       </section>
     `;
   }
 
-  Object.keys(leagues).forEach(league => {
+  // FINISHED RESULTS
+  if (finishedMatches.length) {
     html += `
-      <section class="match-group">
-        <h3>${esc(league)}</h3>
-        ${leagues[league].map(renderMatch).join('')}
+      <section class="match-category">
+        <h2>🏁 FINISHED RESULTS</h2>
+        ${renderLeagueGroups(finishedMatches)}
       </section>
     `;
-  });
+  }
+
+  // UPCOMING FIXTURES
+  if (upcomingMatches.length) {
+    html += `
+      <section class="match-category">
+        <h2>⏳ UPCOMING FIXTURES</h2>
+        ${renderLeagueGroups(upcomingMatches)}
+      </section>
+    `;
+  }
 
   list.innerHTML = html;
 }
-
 
 async function loadMatches(base) {
   const r = await fetch(base + '/matches', {
