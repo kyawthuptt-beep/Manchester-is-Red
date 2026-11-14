@@ -313,20 +313,21 @@ function getMatchDate(value) {
 }
 
 
+
 function formatMatchDate(value) {
   const d = getMatchDate(value);
 
   if (!d) return value || 'Date TBC';
 
-  return d.toLocaleString('en-GB', {
+  return d.toLocaleString(undefined, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC'
-  }) + ' UTC';
+    minute: '2-digit'
+  });
 }
+
 
 
 function dateKey(d) {
