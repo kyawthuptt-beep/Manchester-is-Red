@@ -411,7 +411,64 @@ app.get("/api/standings",async(req,res)=>{
  }
 });
 
+// TEAM PROFILE API
+app.get("/api/team/:id",async(req,res)=>{
 
+ const teamId=Number(req.params.id);
+
+ if(!Number.isInteger(teamId)||teamId<=0){
+  return res.status(400).json({
+   mode:"error",
+   message:"Invalid team ID"
+  });
+ }
+
+ if(!TOKEN){
+  return res.status(503).json({
+   mode:"error",
+   message:"Football API token is required"
+  });
+ }
+
+ try{
+  const data=await football(
+   `/teams/${teamId}`
+  );
+
+  res.json({
+   mode:"live",
+   team:{
+    id:data.id,
+    name:data.name||"",
+    shortName:data.shortName||"",
+    tla:data.tla||"",
+    crest:data.crest||"",
+    address:data.address||"",
+    website:data.website||"",
+    founded:data.founded||null,
+    clubColors:data.clubColors||"",
+    venue:data.venue||"",
+    coach:data.coach?.name||"Not available",
+    squad:(data.squad||[]).map(p=>({
+     id:p.id,
+     name:p.name||"",
+     position:p.position||"",
+     dateOfBirth:p.dateOfBirth||null,
+     nationality:p.nationality||"",
+     shirtNumber:p.shirtNumber??null
+    }))
+   }
+  });
+
+ }catch(error){
+  console.error("Team profile error:",error.message);
+
+  res.status(502).json({
+   mode:"error",
+   message:error.message
+  });
+ }
+});
 // NEW: Manchester United Official News
 app.get("/api/news",async(req,res)=>{
  try{
