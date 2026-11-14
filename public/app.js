@@ -605,6 +605,7 @@ async function loadMatches(base) {
    LEAGUE TABLE
 ========================================= */
 
+
 async function loadTable(base) {
   const league =
     $('.league-tab.active')?.dataset.league || 'PL';
@@ -614,26 +615,27 @@ async function loadTable(base) {
     { cache: 'no-store' }
   );
 
- if (!r.ok) {
-  const errorText = await r.text();
+  if (!r.ok) {
+    const errorText = await r.text();
 
-  throw Error(
-    'Standings API: ' +
-    r.status +
-    ' - ' +
-    errorText
-  );
-} 
+    throw Error(
+      'Standings API: ' +
+      r.status +
+      ' - ' +
+      errorText
+    );
+  }
 
   const j = await r.json();
 
   const rows = Array.isArray(j.table) ? j.table : [];
-currentStandings = rows;
-currentLeague = league;
+
+  currentStandings = rows;
+  currentLeague = league;
+
   if (!rows.length) {
     $('#tableWrap').innerHTML =
       '<div class="empty">No league table data.</div>';
-
     return;
   }
 
@@ -647,6 +649,9 @@ currentLeague = league;
           <th>W</th>
           <th>D</th>
           <th>L</th>
+          <th>GF</th>
+          <th>GA</th>
+          <th>GD</th>
           <th>PTS</th>
         </tr>
       </thead>
@@ -655,17 +660,22 @@ currentLeague = league;
         ${rows.map(x => `
           <tr>
             <td>${esc(x.position)}</td>
+
             <td>
-  <button
-    class="team-profile-link"
-    data-open-team="${esc(x.team)}">
-    ${esc(x.team)}
-  </button>
-</td>
+              <button
+                class="team-profile-link"
+                data-open-team="${esc(x.team)}">
+                ${esc(x.team)}
+              </button>
+            </td>
+
             <td>${esc(x.played)}</td>
             <td>${esc(x.won)}</td>
             <td>${esc(x.drawn)}</td>
             <td>${esc(x.lost)}</td>
+            <td>${esc(x.goalsFor)}</td>
+            <td>${esc(x.goalsAgainst)}</td>
+            <td>${esc(x.goalDifference)}</td>
             <td><b>${esc(x.points)}</b></td>
           </tr>
         `).join('')}
