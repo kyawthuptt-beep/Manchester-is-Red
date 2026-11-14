@@ -1,17 +1,21 @@
-"src": "icon.svg",{
-  "name": "MANCHESTER IS RED",
-  "short_name": "MIR United",
-  "description": "Bilingual Manchester United fan hub",
+
+{
+  "name": "FOOTBALL WORLD",
+  "short_name": "FOOTBALL WORLD",
+  "description": "ONE WORLD. ONE GAME. Global football news, live scores, fixtures and league tables.",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#b30018",
+  "orientation": "portrait",
+  "background_color": "#10151d",
+  "theme_color": "#10151d",
+  "lang": "en",
   "icons": [
     {
-      "src": "assets/icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
