@@ -30,10 +30,34 @@ const demoMatches=[
  {date:"Demo data",competition:"Premier League",home:"Opponent",away:"Manchester United",score:"Connect API for live fixtures",status:"Preview"}
 ];
 
-const demoTable=[
- {position:1,team:"Team data unavailable",played:"—",won:"—",drawn:"—",lost:"—",points:"—"},
- {position:2,team:"Manchester United",played:"—",won:"—",drawn:"—",lost:"—",points:"—"}
+
+const demoTable = [
+  {
+    position: 1,
+    team: "Team data unavailable",
+    played: "—",
+    won: "—",
+    drawn: "—",
+    lost: "—",
+    goalsFor: "—",
+    goalsAgainst: "—",
+    goalDifference: "—",
+    points: "—"
+  },
+  {
+    position: 2,
+    team: "Manchester United",
+    played: "—",
+    won: "—",
+    drawn: "—",
+    lost: "—",
+    goalsFor: "—",
+    goalsAgainst: "—",
+    goalDifference: "—",
+    points: "—"
+  }
 ];
+
 function formatDate(d){
  return d.toISOString().slice(0,10);
 }
