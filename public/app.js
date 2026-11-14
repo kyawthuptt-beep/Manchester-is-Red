@@ -867,7 +867,7 @@ function renderFollowing() {
    TEAM PROFILE
 ========================================= */
 
-function openTeamProfile(team) {
+async function openTeamProfile(team) {
 
   const followingSection = $('#following');
   const profileSection = $('#teamProfile');
@@ -883,31 +883,79 @@ function openTeamProfile(team) {
 
   const normalize = value =>
     String(value || '').trim().toLowerCase();
-// TEAM PROFILE LOGO
-const logoMatch = allMatches.find(m =>
-  (
-    normalize(m.home) === normalize(teamName) &&
-    m.homeLogo
-  ) ||
-  (
-    normalize(m.away) === normalize(teamName) &&
-    m.awayLogo
-  )
-);
+// TEAM PROFILE API CONNECTION
 
 const teamLogo = $('#teamProfileLogo');
 
-if (teamLogo) {
-  const logoUrl = logoMatch
-    ? (
-        normalize(logoMatch.home) === normalize(teamName)
-          ? logoMatch.homeLogo
-          : logoMatch.awayLogo
-      )
-    : '';
+try {
 
-  teamLogo.src = logoUrl ? safeUrl(logoUrl) : '';
-  teamLogo.hidden = !logoUrl;
+  // LOAD TEAM DIRECTORY
+  if (!openTeamProfile.teamDirectory) {
+
+    const response = await fetch(
+      `${API_BASE}/teams`
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.mode !== 'live') {
+      throw new Error('Could not load teams');
+    }
+
+    openTeamProfile.teamDirectory =
+      result.teams || [];
+  }
+
+  // FIND TEAM ID
+  const teamData = openTeamProfile.teamDirectory.find(x =>
+    normalize(x.name) === normalize(teamName) ||
+    normalize(x.shortName) === normalize(teamName) ||
+    normalize(x.tla) === normalize(teamName)
+  );
+
+  if (!teamData) {
+    throw new Error('Team not found');
+  }
+
+  // LOAD FULL TEAM PROFILE
+  const response = await fetch(
+    `${API_BASE}/team/${teamData.id}`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || result.mode !== 'live') {
+    throw new Error('Could not load team profile');
+  }
+
+  const profile = result.team;
+
+  // TEAM LOGO
+  if (teamLogo) {
+    teamLogo.src = safeUrl(
+      profile.crest || teamData.crest
+    );
+    teamLogo.hidden = false;
+  }
+
+  // TEAM INFORMATION
+  $('#teamProfileInfo').innerHTML = `
+    <p>Founded: ${esc(profile.founded || 'N/A')}</p>
+    <p>Stadium: ${esc(profile.venue || 'N/A')}</p>
+    <p>Manager: ${esc(profile.coach || 'N/A')}</p>
+    <p>Club Colors: ${esc(profile.clubColors || 'N/A')}</p>
+  `;
+
+} catch (error) {
+
+  console.error('Team Profile:', error);
+
+  if (teamLogo) {
+    teamLogo.hidden = true;
+  }
+
+  $('#teamProfileInfo').textContent =
+    'Team information is temporarily unavailable.';
 }
   // TEAM MATCHES
   const teamMatches = allMatches.filter(m =>
