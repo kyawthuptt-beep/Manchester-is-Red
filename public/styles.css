@@ -1169,3 +1169,13 @@ select:focus-visible {
   font-weight: 800;
   white-space: nowrap;
 }
+.team-profile-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 8px;
+}
