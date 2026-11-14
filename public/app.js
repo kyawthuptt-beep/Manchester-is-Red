@@ -510,6 +510,7 @@ function renderMatch(m) {
   `;
 }
 
+
 function renderMatches() {
   const list = $('#matchList');
 
@@ -525,19 +526,85 @@ function renderMatches() {
     });
   }
 
-  if (!arr.length) {
-    list.innerHTML = `
-      <div class="empty">
-        <span>⚽</span>
-        <p>
-          ${selectedDate
-            ? 'ရွေးချယ်ထားသောနေ့တွင် ပွဲစဉ်မရှိပါ။ / No matches for this date.'
-            : 'ပြသနိုင်သော ပွဲစဉ်မရှိသေးပါ။ / No matches available.'}
-        </p>
-      </div>
-    `;
-    return;
+  // SEPARATE MATCH TYPES
+  const liveMatches = arr.filter(isLiveMatch);
+
+  const finishedMatches = arr.filter(isFinishedMatch);
+
+  const upcomingMatches = arr.filter(m =>
+    !isLiveMatch(m) && !isFinishedMatch(m)
+  );
+
+  // GROUP MATCHES BY LEAGUE
+  function groupByLeague(matches) {
+    const groups = {};
+
+    matches.forEach(m => {
+      const league = m.competition || 'OTHER MATCHES';
+
+      if (!groups[league]) {
+        groups[league] = [];
+      }
+
+      groups[league].push(m);
+    });
+
+    return groups;
   }
+
+  // RENDER LEAGUE GROUPS
+  function renderLeagueGroups(matches, emptyText) {
+    if (!matches.length) {
+      return `
+        <div class="empty match-empty">
+          <span>⚽</span>
+          <p>${emptyText}</p>
+        </div>
+      `;
+    }
+
+    const groups = groupByLeague(matches);
+
+    return Object.keys(groups).map(league => `
+      <section class="match-group">
+        <h3>${esc(league)}</h3>
+        ${groups[league].map(renderMatch).join('')}
+      </section>
+    `).join('');
+  }
+
+  // ALWAYS SHOW ALL THREE CATEGORIES
+  const html = `
+
+    <section class="match-category live-category">
+      <h2>🔴 LIVE MATCHES</h2>
+      ${renderLeagueGroups(
+        liveMatches,
+        'လက်ရှိ တိုက်ရိုက်ကစားနေသောပွဲ မရှိသေးပါ။ / No live matches.'
+      )}
+    </section>
+
+    <section class="match-category finished-category">
+      <h2>🏁 FINISHED RESULTS</h2>
+      ${renderLeagueGroups(
+        finishedMatches,
+        'ပြီးဆုံးသွားသောပွဲ မရှိသေးပါ။ / No finished results.'
+      )}
+    </section>
+
+    <section class="match-category upcoming-category">
+      <h2>⏳ UPCOMING FIXTURES</h2>
+      ${renderLeagueGroups(
+        upcomingMatches,
+        'လာမည့်ပွဲစဉ် မရှိသေးပါ။ / No upcoming fixtures.'
+      )}
+    </section>
+
+  `;
+
+  list.innerHTML = html;
+}
+
 
   // SEPARATE MATCH TYPES
   const liveMatches = arr.filter(isLiveMatch);
