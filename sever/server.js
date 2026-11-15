@@ -376,13 +376,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// MATCHES API
+
+// MATCHES API - API-FOOTBALL
+const MATCHES_CACHE_TTL = 20 * 60 * 1000;
+const matchesApiCache = new Map();
 
 app.get("/api/matches", async (req, res) => {
-  if (!TOKEN) {
-    return res.json({
-      mode: "demo",
-      matches: demoMatches
+  if (!API_FOOTBALL_KEY) {
+    return res.status(503).json({
+      mode: "error",
+      error: "API_FOOTBALL_KEY is missing",
+      matches: []
     });
   }
 
@@ -393,6 +397,9 @@ app.get("/api/matches", async (req, res) => {
     let dateTo;
     let localStart = null;
     let localEnd = null;
+
+    const formatUTCDate = date =>
+      date.toISOString().slice(0, 10);
 
     if (requestedDate) {
       if (
@@ -421,7 +428,6 @@ app.get("/api/matches", async (req, res) => {
         });
       }
 
-      // Browser timezone offset: UTC - local time, in minutes
       const timezoneOffset =
         req.query.timezoneOffset === undefined
           ? 0
@@ -439,7 +445,6 @@ app.get("/api/matches", async (req, res) => {
         });
       }
 
-      // Convert selected local day into UTC boundaries
       localStart = new Date(
         selected.getTime() + timezoneOffset * 60000
       );
@@ -448,16 +453,10 @@ app.get("/api/matches", async (req, res) => {
         localStart.getTime() + 86400000
       );
 
-      dateFrom = formatDate(localStart);
+      dateFrom = formatUTCDate(localStart);
 
-      // football-data.org dateTo is exclusive.
-      // Include the final UTC calendar date in the search.
-      dateTo = formatDate(
-        new Date(Date.UTC(
-          localEnd.getUTCFullYear(),
-          localEnd.getUTCMonth(),
-          localEnd.getUTCDate() + 1
-        ))
+      dateTo = formatUTCDate(
+        new Date(localEnd.getTime() - 1)
       );
 
     } else {
@@ -469,192 +468,165 @@ app.get("/api/matches", async (req, res) => {
       const to = new Date(today);
       to.setUTCDate(to.getUTCDate() + 5);
 
-      dateFrom = formatDate(from);
-      dateTo = formatDate(to);
+      dateFrom = formatUTCDate(from);
+      dateTo = formatUTCDate(to);
     }
 
-    const matchesPath =
-      `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`;
+    // CACHE: avoid repeated API requests
+    const cacheKey = `${dateFrom}_${dateTo}`;
 
-    const data = await football(matchesPath);
+    let data;
+    let cacheHit = false;
 
-const liveMatches = (data.matches || []).filter(m =>
-  ["IN_PLAY", "PAUSED", "HALFTIME"].includes(m.status)
-);
+    const cached = matchesApiCache.get(cacheKey);
 
+    if (
+      cached &&
+      Date.now() - cached.time < MATCHES_CACHE_TTL
+    ) {
+      data = cached.data;
+      cacheHit = true;
 
-console.log(
-  "ALL MATCHES MINUTE CHECK:",
-  JSON.stringify(
-    (data.matches || []).map(m => ({
-      id: m.id,
-      home: m.homeTeam?.name,
-      away: m.awayTeam?.name,
-      status: m.status,
-      minute: m.minute,
-      score: m.score
-    })),
-    null,
-    2
-  )
-);
+    } else {
+      const params = new URLSearchParams({
+        from: dateFrom,
+        to: dateTo,
+        timezone: "UTC"
+      });
 
+      const response = await fetch(
+        `https://v3.football.api-sports.io/fixtures?${params}`,
+        {
+          headers: {
+            "x-apisports-key": API_FOOTBALL_KEY
+          },
+          signal: AbortSignal.timeout(20000)
+        }
+      );
 
-    let rawMatches = [...(data.matches || [])];
+      data = await response.json();
+
+      const hasErrors =
+        data.errors &&
+        Object.keys(data.errors).length > 0;
+
+      if (!response.ok || hasErrors) {
+        throw new Error(
+          JSON.stringify(data.errors || data.message || response.status)
+        );
+      }
+
+      matchesApiCache.set(cacheKey, {
+        time: Date.now(),
+        data
+      });
+    }
+
+    let rawMatches = Array.isArray(data.response)
+      ? [...data.response]
+      : [];
 
     // Filter exact local-day boundaries
     if (localStart && localEnd) {
-      rawMatches = rawMatches.filter(m => {
-        if (!m.utcDate) return false;
-
-        const kickoff = new Date(m.utcDate);
+      rawMatches = rawMatches.filter(item => {
+        const kickoff = new Date(item.fixture?.date);
 
         return (
+          !isNaN(kickoff.getTime()) &&
           kickoff >= localStart &&
           kickoff < localEnd
         );
       });
     }
 
-    // Sort by UTC kickoff time
-    rawMatches.sort((a, b) => {
-      return (
-        new Date(a.utcDate || 0).getTime() -
-        new Date(b.utcDate || 0).getTime()
-      );
+    // Sort by kickoff time
+    rawMatches.sort((a, b) =>
+      new Date(a.fixture?.date || 0).getTime() -
+      new Date(b.fixture?.date || 0).getTime()
+    );
+
+    const matches = rawMatches.map(item => {
+      const fixture = item.fixture || {};
+      const statusCode = fixture.status?.short || "NS";
+
+      let status = "SCHEDULED";
+
+      if (["1H", "2H", "ET", "P", "LIVE"].includes(statusCode)) {
+        status = "IN_PLAY";
+      } else if (statusCode === "HT") {
+        status = "HALF_TIME";
+      } else if (["BT", "SUSP", "INT"].includes(statusCode)) {
+        status = "PAUSED";
+      } else if (
+        ["FT", "AET", "PEN", "AWD", "WO"].includes(statusCode)
+      ) {
+        status = "FINISHED";
+      }
+
+      const kickoff = fixture.date
+        ? new Date(fixture.date)
+        : null;
+
+      return {
+        id: fixture.id,
+
+        date:
+          kickoff && !isNaN(kickoff.getTime())
+            ? kickoff.toLocaleString("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: "UTC"
+              }) + " UTC"
+            : "TBC",
+
+        competition:
+          item.league?.name || "Competition",
+
+        home: item.teams?.home?.name || "TBC",
+        homeLogo: item.teams?.home?.logo || "",
+
+        away: item.teams?.away?.name || "TBC",
+        awayLogo: item.teams?.away?.logo || "",
+
+        score:
+          item.goals?.home != null &&
+          item.goals?.away != null
+            ? `${item.goals.home} - ${item.goals.away}`
+            : "—",
+
+        status,
+        minute: fixture.status?.elapsed ?? null,
+        injuryTime: fixture.status?.extra ?? null
+      };
     });
-
-    const matches = rawMatches.map(m => ({
-      id: m.id,
-
-      date: m.utcDate
-        ? new Date(m.utcDate).toLocaleString("en-GB", {
-            dateStyle: "medium",
-            timeStyle: "short",
-            timeZone: "UTC"
-          }) + " UTC"
-        : "TBC",
-
-      competition:
-        m.competition?.name || "Competition",
-
-      home: m.homeTeam?.name || "TBC",
-      homeLogo: m.homeTeam?.crest || "",
-
-      away: m.awayTeam?.name || "TBC",
-      awayLogo: m.awayTeam?.crest || "",
-
-      score:
-        m.score?.fullTime?.home != null &&
-        m.score?.fullTime?.away != null
-          ? `${m.score.fullTime.home} - ${m.score.fullTime.away}`
-          : m.status,
-
-      status: m.status,
-      minute: m.minute ?? null,
-      injuryTime: m.injuryTime ?? null
-    }));
 
     res.json({
       mode: "live",
-      source: "Global Football Matches",
+      source: "API-Football",
       dateFrom,
       dateTo,
       total: matches.length,
+      pages: data.paging?.total || 1,
+      partial: (data.paging?.total || 1) > 1,
+      cacheHit,
       matches
     });
 
   } catch (error) {
-    console.error("Matches error:", error.message);
-
-    res.status(502).json({
-      mode: "error",
-      error: error.message,
-      matches: []
-    });
-  }
-});
-
-
-// LIVE MATCH TEST
-app.get("/api/live-test", async (req, res) => {
-  try {
-    const data = await football("/matches?status=LIVE");
-
-    const matches = (data.matches || []).map(m => ({
-      id: m.id,
-
-      competition:
-        m.competition?.name || "Competition",
-
-      home: m.homeTeam?.name || "TBC",
-      homeLogo: m.homeTeam?.crest || "",
-
-      away: m.awayTeam?.name || "TBC",
-      awayLogo: m.awayTeam?.crest || "",
-
-      score:
-        m.score?.fullTime?.home != null &&
-        m.score?.fullTime?.away != null
-          ? `${m.score.fullTime.home} - ${m.score.fullTime.away}`
-          : "—",
-
-      status: m.status,
-      minute: m.minute ?? null,
-      injuryTime: m.injuryTime ?? null
-    }));
-
-    res.json({
-      mode: "live",
-      source: "football-data.org LIVE Filter",
-      count: matches.length,
-      matches
-    });
-
-  } catch (error) {
-    console.error("Live test error:", error.message);
-
-    res.status(502).json({
-      mode: "error",
-      error: error.message,
-      matches: []
-    });
-  }
-});
-
-// DATE TEST
-app.get("/api/date-test", async (req, res) => {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-
-    const data = await football(
-      `/matches?date=${today}`
+    console.error(
+      "API-Football Matches error:",
+      error.message
     );
 
-    res.json({
-      mode: "live",
-      testDate: today,
-      filters: data.filters || {},
-      resultSet: data.resultSet || {},
-      count: (data.matches || []).length,
-
-      matches: (data.matches || []).map(m => ({
-        id: m.id,
-        date: m.utcDate,
-        competition: m.competition?.name,
-        home: m.homeTeam?.name,
-        away: m.awayTeam?.name,
-        status: m.status
-      }))
-    });
-
-  } catch (error) {
     res.status(502).json({
       mode: "error",
-      error: error.message
+      source: "API-Football",
+      error: error.message,
+      matches: []
     });
   }
 });
+
 
 // STANDINGS API
 app.get("/api/standings", async (req, res) => {
