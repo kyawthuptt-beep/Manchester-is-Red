@@ -526,13 +526,6 @@ app.get("/api/matches", async (req, res) => {
       });
     }
 
-
-      if (!response.ok || hasErrors) {
-        throw new Error(
-          JSON.stringify(data.errors || data.message || response.status)
-        );
-      }
-
       matchesApiCache.set(cacheKey, {
         time: Date.now(),
         data
