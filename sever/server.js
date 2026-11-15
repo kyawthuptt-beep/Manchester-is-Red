@@ -390,10 +390,11 @@ const liveMatches = (data.matches || []).filter(m =>
   ["IN_PLAY", "PAUSED", "HALFTIME"].includes(m.status)
 );
 
+
 console.log(
-  "LIVE MATCH MINUTE CHECK:",
+  "ALL MATCHES MINUTE CHECK:",
   JSON.stringify(
-    liveMatches.map(m => ({
+    (data.matches || []).map(m => ({
       id: m.id,
       home: m.homeTeam?.name,
       away: m.awayTeam?.name,
@@ -405,6 +406,7 @@ console.log(
     2
   )
 );
+
 
     let rawMatches = [...(data.matches || [])];
 
