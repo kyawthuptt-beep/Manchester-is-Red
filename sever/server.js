@@ -526,11 +526,6 @@ app.get("/api/matches", async (req, res) => {
       });
     }
 
-      matchesApiCache.set(cacheKey, {
-        time: Date.now(),
-        data
-      });
-    }
 
     let rawMatches = Array.isArray(data.response)
       ? [...data.response]
