@@ -12,6 +12,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.FOOTBALL_DATA_TOKEN;
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 
 const NEWS_FEEDS = [
   {
