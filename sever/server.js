@@ -61,6 +61,64 @@ app.get("/api/test-football-api", async (req, res) => {
     });
   }
 });
+
+// API-FOOTBALL LIVE MATCH TEST
+app.get("/api/test-live-football-api", async (req, res) => {
+  try {
+    if (!API_FOOTBALL_KEY) {
+      return res.status(500).json({
+        ok: false,
+        message: "API_FOOTBALL_KEY is missing"
+      });
+    }
+
+    const response = await fetch(
+      "https://v3.football.api-sports.io/fixtures?live=all",
+      {
+        headers: {
+          "x-apisports-key": API_FOOTBALL_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const data = await response.json();
+
+    const hasErrors =
+      data.errors &&
+      Object.keys(data.errors).length > 0;
+
+    res.status(response.status).json({
+      ok: response.ok && !hasErrors,
+      provider: "API-Football",
+      totalLiveMatches: data.results ?? 0,
+      errors: data.errors || [],
+      matches: (data.response || [])
+        .slice(0, 10)
+        .map(item => ({
+          id: item.fixture?.id,
+          league: item.league?.name || "Unknown",
+          country: item.league?.country || "",
+          home: item.teams?.home?.name || "TBC",
+          away: item.teams?.away?.name || "TBC",
+          score:
+            `${item.goals?.home ?? 0} - ${item.goals?.away ?? 0}`,
+          status: item.fixture?.status?.short || "",
+          statusText: item.fixture?.status?.long || "",
+          minute: item.fixture?.status?.elapsed ?? null,
+          date: item.fixture?.date || ""
+        }))
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: "API-Football",
+      message: error.message
+    });
+  }
+});
+
 const demoMatches = [
   {
     date: "Demo data",
