@@ -27,7 +27,40 @@ const NEWS_FEEDS = [
 
 const TRANSLATE_API =
   "https://api.mymemory.translated.net/get";
+// API-FOOTBALL CONNECTION TEST
+app.get("/api/test-football-api", async (req, res) => {
+  try {
+    if (!API_FOOTBALL_KEY) {
+      return res.status(500).json({
+        ok: false,
+        message: "API_FOOTBALL_KEY is missing"
+      });
+    }
 
+    const response = await fetch(
+      "https://v3.football.api-sports.io/status",
+      {
+        headers: {
+          "x-apisports-key": API_FOOTBALL_KEY
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    res.status(response.status).json({
+      ok: response.ok,
+      provider: "API-Football",
+      response: data
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: error.message
+    });
+  }
+});
 const demoMatches = [
   {
     date: "Demo data",
