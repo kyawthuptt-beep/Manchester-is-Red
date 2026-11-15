@@ -526,19 +526,6 @@ app.get("/api/matches", async (req, res) => {
       });
     }
 
-        {
-          headers: {
-            "x-apisports-key": API_FOOTBALL_KEY
-          },
-          signal: AbortSignal.timeout(20000)
-        }
-      );
-
-      data = await response.json();
-
-      const hasErrors =
-        data.errors &&
-        Object.keys(data.errors).length > 0;
 
       if (!response.ok || hasErrors) {
         throw new Error(
