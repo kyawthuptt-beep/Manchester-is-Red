@@ -473,7 +473,12 @@ app.get("/api/matches", async (req, res) => {
     }
 
     // CACHE: avoid repeated API requests
-    const cacheKey = `${dateFrom}_${dateTo}`;
+    
+    // Use one calendar date for global fixtures
+    const apiDate =
+      requestedDate || new Date().toISOString().slice(0, 10);
+
+    const cacheKey = apiDate;
 
     let data;
     let cacheHit = false;
@@ -489,13 +494,38 @@ app.get("/api/matches", async (req, res) => {
 
     } else {
       const params = new URLSearchParams({
-        from: dateFrom,
-        to: dateTo,
+        date: apiDate,
         timezone: "UTC"
       });
 
       const response = await fetch(
         `https://v3.football.api-sports.io/fixtures?${params}`,
+        {
+          headers: {
+            "x-apisports-key": API_FOOTBALL_KEY
+          },
+          signal: AbortSignal.timeout(20000)
+        }
+      );
+
+      data = await response.json();
+
+      const hasErrors =
+        data.errors &&
+        Object.keys(data.errors).length > 0;
+
+      if (!response.ok || hasErrors) {
+        throw new Error(
+          JSON.stringify(data.errors || data.message || response.status)
+        );
+      }
+
+      matchesApiCache.set(cacheKey, {
+        time: Date.now(),
+        data
+      });
+    }
+
         {
           headers: {
             "x-apisports-key": API_FOOTBALL_KEY
