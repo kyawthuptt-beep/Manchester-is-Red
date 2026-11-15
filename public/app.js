@@ -1521,7 +1521,6 @@ localClock();
 
 loadLive();
 loadOfficialNews();
-startMatchAutoRefresh();
 
 window.addEventListener('online', () => {
   console.log('FOOTBALL WORLD: Internet restored');
