@@ -539,13 +539,24 @@ function renderMatches() {
 
   let arr = [...allMatches];
 
-  // FILTER BY SELECTED DATE
-  if (selectedDate) {
-    arr = arr.filter(m => {
-      const d = getMatchDate(m.date);
-      return d && dateKey(d) === selectedDate;
-    });
-  }
+
+
+// FILTER BY SELECTED DATE (LOCAL TIMEZONE)
+if (selectedDate) {
+  arr = arr.filter(m => {
+    const d = getMatchDate(m.date);
+
+    if (!d) return false;
+
+    const localDate = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0')
+    ].join('-');
+
+    return localDate === selectedDate;
+  });
+}
 
   // SEPARATE MATCH TYPES
   const liveMatches = arr.filter(isLiveMatch);
