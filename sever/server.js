@@ -1,6 +1,6 @@
-
+const API_NINJAS_KEY = process.env.API_NINJAS_KEY;
 require("dotenv").config();
-
+const KICKOFF_API_KEY = process.env.KICKOFF_API_KEY;
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -280,6 +280,78 @@ app.get("/api/test-api-ninjas", async (req, res) => {
     res.status(502).json({
       ok: false,
       provider: "API Ninjas",
+      error: error.message
+    });
+  }
+});
+
+// KICKOFF API LEAGUE SEARCH TEST
+app.get("/api/test-kickoff", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const search = String(
+      req.query.search || "AFCON"
+    ).trim();
+
+    if (!search || search.length > 80) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid search term"
+      });
+    }
+
+    const params = new URLSearchParams({
+      search,
+      limit: "20"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/leagues?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: data.error || data.message || data
+      });
+    }
+
+    const leagues = Array.isArray(data.data)
+      ? data.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      search,
+      total: leagues.length,
+      leagues: leagues.map(item => ({
+        id: item.id,
+        name: item.name,
+        country: item.country || ""
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
       error: error.message
     });
   }
