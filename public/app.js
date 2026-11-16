@@ -459,7 +459,9 @@ function renderMatch(m) {
   const awayFollowed = isFollowed(away);
 
   const status = String(m.status || 'SCHEDULED').toUpperCase();
-
+const liveMinute = isLiveMatch(m) && m.minute != null
+  ? `${m.minute}${m.injuryTime ? `+${m.injuryTime}` : ''}′`
+  : '';
   const statusClass = isLiveMatch(m)
     ? 'live'
     : isFinishedMatch(m)
@@ -472,8 +474,9 @@ function renderMatch(m) {
       <div class="match-head">
         <span>${esc(m.competition || 'MATCH')}</span>
         <span class="${statusClass}">
-          ${esc(status)}
-        </span>
+  ${esc(status)}
+  ${liveMinute ? ' • ' + esc(liveMinute) : ''}
+</span>
       </div>
 
       <div class="match-teams">
