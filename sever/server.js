@@ -13,7 +13,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.FOOTBALL_DATA_TOKEN;
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
-
+const API_NINJAS_KEY = process.env.API_NINJAS_KEY;
 const NEWS_FEEDS = [
   {
     name: "BBC Sport",
@@ -199,6 +199,91 @@ async function football(pathname) {
 
   return JSON.parse(body);
 }
+
+// API NINJAS FOOTBALL TEST
+app.get("/api/test-api-ninjas", async (req, res) => {
+  try {
+    if (!API_NINJAS_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "API_NINJAS_KEY is missing"
+      });
+    }
+
+    const league = String(
+      req.query.league || "epl"
+    ).toLowerCase();
+
+    if (!/^[a-z0-9]+$/.test(league)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid league code"
+      });
+    }
+
+    const params = new URLSearchParams({
+      league
+    });
+
+    if (req.query.date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) {
+        return res.status(400).json({
+          ok: false,
+          message: "Date must use YYYY-MM-DD"
+        });
+      }
+
+      params.set("date", req.query.date);
+    }
+
+    const response = await fetch(
+      "https://api.api-ninjas.com/v1/soccermatches?" +
+      params.toString(),
+      {
+        headers: {
+          "X-Api-Key": API_NINJAS_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !Array.isArray(data)) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "API Ninjas",
+        league,
+        error: data.error || data.message || data
+      });
+    }
+
+    res.json({
+      ok: true,
+      provider: "API Ninjas",
+      league,
+      total: data.length,
+      matches: data.slice(0, 20).map(item => ({
+        id: item.game_id,
+        date: item.date || "",
+        startTime: item.start_time || "",
+        home: item.home_team?.name || "TBC",
+        away: item.away_team?.name || "TBC",
+        homeScore: item.home_score ?? null,
+        awayScore: item.away_score ?? null,
+        status: item.status || "unknown",
+        minute: item.clock || null
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "API Ninjas",
+      error: error.message
+    });
+  }
+});
 
 // RSS XML HELPERS
 function xmlValue(block, tag) {
