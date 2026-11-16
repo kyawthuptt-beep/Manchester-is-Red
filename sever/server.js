@@ -1,4 +1,4 @@
-const API_NINJAS_KEY = process.env.API_NINJAS_KEY;
+
 require("dotenv").config();
 const KICKOFF_API_KEY = process.env.KICKOFF_API_KEY;
 const express = require("express");
