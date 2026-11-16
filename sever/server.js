@@ -377,29 +377,24 @@ app.get("/api/health", (req, res) => {
 });
 
 
-// MATCHES API - API-FOOTBALL
-const MATCHES_CACHE_TTL = 20 * 60 * 1000;
+
+// MATCHES API - FOOTBALL-DATA.ORG
+const MATCHES_CACHE_TTL = 60 * 1000;
 const matchesApiCache = new Map();
 
 app.get("/api/matches", async (req, res) => {
-  if (!API_FOOTBALL_KEY) {
+  if (!TOKEN) {
     return res.status(503).json({
       mode: "error",
-      error: "API_FOOTBALL_KEY is missing",
+      error: "FOOTBALL_DATA_TOKEN is missing",
       matches: []
     });
   }
 
   try {
     const requestedDate = req.query.date;
-
     let dateFrom;
     let dateTo;
-    let localStart = null;
-    let localEnd = null;
-
-    const formatUTCDate = date =>
-      date.toISOString().slice(0, 10);
 
     if (requestedDate) {
       if (
@@ -445,41 +440,29 @@ app.get("/api/matches", async (req, res) => {
         });
       }
 
-      localStart = new Date(
+      const localStart = new Date(
         selected.getTime() + timezoneOffset * 60000
       );
 
-      localEnd = new Date(
+      const localEnd = new Date(
         localStart.getTime() + 86400000
       );
 
-      dateFrom = formatUTCDate(localStart);
-
-      dateTo = formatUTCDate(
-        new Date(localEnd.getTime() - 1)
-      );
+      dateFrom = localStart.toISOString().slice(0, 10);
+      dateTo = localEnd.toISOString().slice(0, 10);
 
     } else {
       const today = new Date();
 
-      const from = new Date(today);
-      from.setUTCDate(from.getUTCDate() - 5);
+      dateFrom = today.toISOString().slice(0, 10);
 
-      const to = new Date(today);
-      to.setUTCDate(to.getUTCDate() + 5);
+      const tomorrow = new Date(today);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-      dateFrom = formatUTCDate(from);
-      dateTo = formatUTCDate(to);
+      dateTo = tomorrow.toISOString().slice(0, 10);
     }
 
-    // CACHE: avoid repeated API requests
-    
-    // Use one calendar date for global fixtures
-    const apiDate =
-      requestedDate || new Date().toISOString().slice(0, 10);
-
-    const cacheKey = apiDate;
-
+    const cacheKey = `${dateFrom}_${dateTo}`;
     let data;
     let cacheHit = false;
 
@@ -493,32 +476,9 @@ app.get("/api/matches", async (req, res) => {
       cacheHit = true;
 
     } else {
-      const params = new URLSearchParams({
-        date: apiDate,
-        timezone: "UTC"
-      });
-
-      const response = await fetch(
-        `https://v3.football.api-sports.io/fixtures?${params}`,
-        {
-          headers: {
-            "x-apisports-key": API_FOOTBALL_KEY
-          },
-          signal: AbortSignal.timeout(20000)
-        }
+      data = await football(
+        `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
       );
-
-      data = await response.json();
-
-      const hasErrors =
-        data.errors &&
-        Object.keys(data.errors).length > 0;
-
-      if (!response.ok || hasErrors) {
-        throw new Error(
-          JSON.stringify(data.errors || data.message || response.status)
-        );
-      }
 
       matchesApiCache.set(cacheKey, {
         time: Date.now(),
@@ -526,54 +486,70 @@ app.get("/api/matches", async (req, res) => {
       });
     }
 
-
-    let rawMatches = Array.isArray(data.response)
-      ? [...data.response]
+    const rawMatches = Array.isArray(data.matches)
+      ? [...data.matches]
       : [];
 
-    // Filter exact local-day boundaries
-    if (localStart && localEnd) {
-      rawMatches = rawMatches.filter(item => {
-        const kickoff = new Date(item.fixture?.date);
-
-        return (
-          !isNaN(kickoff.getTime()) &&
-          kickoff >= localStart &&
-          kickoff < localEnd
-        );
-      });
-    }
-
-    // Sort by kickoff time
     rawMatches.sort((a, b) =>
-      new Date(a.fixture?.date || 0).getTime() -
-      new Date(b.fixture?.date || 0).getTime()
+      new Date(a.utcDate).getTime() -
+      new Date(b.utcDate).getTime()
     );
 
     const matches = rawMatches.map(item => {
-      const fixture = item.fixture || {};
-      const statusCode = fixture.status?.short || "NS";
+      const statusCode = item.status || "SCHEDULED";
 
       let status = "SCHEDULED";
 
-      if (["1H", "2H", "ET", "P", "LIVE"].includes(statusCode)) {
+      if (statusCode === "IN_PLAY") {
         status = "IN_PLAY";
-      } else if (statusCode === "HT") {
+      } else if (statusCode === "PAUSED") {
         status = "HALF_TIME";
-      } else if (["BT", "SUSP", "INT"].includes(statusCode)) {
-        status = "PAUSED";
-      } else if (
-        ["FT", "AET", "PEN", "AWD", "WO"].includes(statusCode)
-      ) {
+      } else if (statusCode === "FINISHED") {
         status = "FINISHED";
+      } else if (
+        ["SUSPENDED", "POSTPONED"].includes(statusCode)
+      ) {
+        status = "PAUSED";
       }
 
-      const kickoff = fixture.date
-        ? new Date(fixture.date)
+      const goals = item.goals || [];
+      const lastGoal = goals.length
+        ? goals[goals.length - 1]
         : null;
 
+      const scoreData = item.score || {};
+
+      let homeScore = null;
+      let awayScore = null;
+
+      if (status === "FINISHED") {
+        homeScore = scoreData.fullTime?.home;
+        awayScore = scoreData.fullTime?.away;
+      } else if (
+        status === "IN_PLAY" ||
+        status === "HALF_TIME" ||
+        status === "PAUSED"
+      ) {
+        homeScore =
+          lastGoal?.score?.home ??
+          scoreData.halfTime?.home ??
+          0;
+
+        awayScore =
+          lastGoal?.score?.away ??
+          scoreData.halfTime?.away ??
+          0;
+      }
+
+      const kickoff = item.utcDate
+        ? new Date(item.utcDate)
+        : null;
+
+      const hasScore =
+        homeScore != null && awayScore != null;
+
       return {
-        id: fixture.id,
+        id: item.id,
 
         date:
           kickoff && !isNaN(kickoff.getTime())
@@ -585,52 +561,49 @@ app.get("/api/matches", async (req, res) => {
             : "TBC",
 
         competition:
-          item.league?.name || "Competition",
+          item.competition?.name || "Competition",
 
-        home: item.teams?.home?.name || "TBC",
-        homeLogo: item.teams?.home?.logo || "",
+        home: item.homeTeam?.name || "TBC",
+        homeLogo: item.homeTeam?.crest || "",
 
-        away: item.teams?.away?.name || "TBC",
-        awayLogo: item.teams?.away?.logo || "",
+        away: item.awayTeam?.name || "TBC",
+        awayLogo: item.awayTeam?.crest || "",
 
-        score:
-          item.goals?.home != null &&
-          item.goals?.away != null
-            ? `${item.goals.home} - ${item.goals.away}`
-            : "—",
+        score: hasScore
+          ? `${homeScore} - ${awayScore}`
+          : "—",
 
         status,
-        minute: fixture.status?.elapsed ?? null,
-        injuryTime: fixture.status?.extra ?? null
+        minute: item.minute ?? null,
+        injuryTime: item.injuryTime ?? null
       };
     });
 
     res.json({
       mode: "live",
-      source: "API-Football",
+      source: "football-data.org",
       dateFrom,
       dateTo,
       total: matches.length,
-      pages: data.paging?.total || 1,
-      partial: (data.paging?.total || 1) > 1,
       cacheHit,
       matches
     });
 
   } catch (error) {
     console.error(
-      "API-Football Matches error:",
+      "Football Data Matches error:",
       error.message
     );
 
     res.status(502).json({
       mode: "error",
-      source: "API-Football",
+      source: "football-data.org",
       error: error.message,
       matches: []
     });
   }
 });
+
 
 
 // STANDINGS API
