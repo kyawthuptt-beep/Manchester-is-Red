@@ -636,6 +636,43 @@ if (selectedDate && !currentMatchSeason) {
 }
 
 
+async function loadTeamFilterOptions() {
+  const teamFilter = $('#teamFilter');
+
+  if (!teamFilter) return;
+
+  try {
+    const response = await fetch(API_BASE + '/teams', {
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error('Teams API: ' + response.status);
+    }
+
+    const result = await response.json();
+
+    if (result.mode !== 'live' || !Array.isArray(result.teams)) {
+      throw new Error('Invalid teams data');
+    }
+
+    const teams = [...result.teams].sort((a, b) =>
+      String(a.name).localeCompare(String(b.name))
+    );
+
+    teamFilter.innerHTML =
+      '<option value="">All Teams</option>' +
+      teams.map(team => `
+        <option value="${esc(team.id)}">
+          ${esc(team.name)}
+        </option>
+      `).join('');
+
+  } catch (error) {
+    console.error('Team Filter:', error);
+  }
+}
+
 
 function setupMatchFilters() {
   if (matchFiltersInitialized) return;
@@ -843,7 +880,8 @@ async function loadTable(base) {
 
 
 async function loadLive() {  setupMatchFilters();
-  $('#matchList').innerHTML =
+loadTeamFilterOptions(); 
+$('#matchList').innerHTML =
     '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
 
   $('#tableWrap').innerHTML =
