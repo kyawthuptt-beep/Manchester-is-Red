@@ -342,7 +342,7 @@ function updateDateLabel() {
 
   if (!el) return;
 
-  if (selectedDate && !currentMatchSeason) {
+  if (selectedDate) {
     el.textContent = 'All Matches';
     return;
   }
@@ -540,7 +540,7 @@ function renderMatches() {
   }
 
 // FILTER BY SELECTED DATE (LOCAL TIMEZONE)
-if (selectedDate) {
+if (selectedDate && !currentMatchSeason) {
   arr = arr.filter(m => {
     const d = getMatchDate(m.date);
 
