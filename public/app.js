@@ -337,25 +337,19 @@ function todayKey() {
 
 
 
+
 function updateDateLabel() {
   const el = $('#selectedMatchDate');
-
   if (!el) return;
 
-  if (selectedDate) {
-    el.textContent = 'All Matches';
-    return;
-  }
-
-  const d = new Date(selectedDate + 'T12:00:00Z');
-
+  const d = new Date(selectedDate + 'T12:00:00');
   const today = todayKey();
 
   let label = d.toLocaleDateString('en-GB', {
+    weekday: 'long',
     day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC'
+    month: 'long',
+    year: 'numeric'
   });
 
   if (selectedDate === today) {
@@ -364,6 +358,115 @@ function updateDateLabel() {
 
   el.textContent = label;
 }
+
+function renderDateStrip() {
+  const strip = $('#matchDateStrip');
+  if (!strip) return;
+
+  const selected = new Date(selectedDate + 'T12:00:00');
+  const today = todayKey();
+
+  strip.innerHTML = '';
+
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(selected);
+    d.setDate(d.getDate() + i);
+
+    const key = dateKey(d);
+
+    let dayLabel = d.toLocaleDateString('en-GB', {
+      weekday: 'short'
+    });
+
+    if (key === today) dayLabel = 'Today';
+    else if (key === dateKey(new Date(
+      new Date().setDate(new Date().getDate() - 1)
+    ))) dayLabel = 'Yesterday';
+    else if (key === dateKey(new Date(
+      new Date().setDate(new Date().getDate() + 1)
+    ))) dayLabel = 'Tomorrow';
+
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className =
+      'match-date-item' +
+      (key === selectedDate ? ' active' : '');
+
+    button.dataset.date = key;
+
+    button.innerHTML = `
+      <span>${dayLabel}</span>
+      <strong>
+        ${d.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short'
+        })}
+      </strong>
+    `;
+
+    strip.appendChild(button);
+  }
+}
+
+function changeMatchDate(amount) {
+  const d = new Date(selectedDate + 'T12:00:00');
+  d.setDate(d.getDate() + amount);
+
+  selectedDate = dateKey(d);
+
+  updateDateLabel();
+  renderDateStrip();
+  loadMatches(API_BASE);
+}
+
+// DATE STRIP CLICK
+const matchDateStrip = $('#matchDateStrip');
+
+if (matchDateStrip) {
+  matchDateStrip.addEventListener('click', e => {
+    const button = e.target.closest('[data-date]');
+    if (!button) return;
+
+    selectedDate = button.dataset.date;
+
+    updateDateLabel();
+    renderDateStrip();
+    loadMatches(API_BASE);
+  });
+}
+
+// PREVIOUS DATE
+const datePrevBtn = $('#datePrevBtn');
+
+if (datePrevBtn) {
+  datePrevBtn.addEventListener('click', () => {
+    changeMatchDate(-1);
+  });
+}
+
+// TODAY
+const dateTodayBtn = $('#dateTodayBtn');
+
+if (dateTodayBtn) {
+  dateTodayBtn.addEventListener('click', () => {
+    selectedDate = todayKey();
+
+    updateDateLabel();
+    renderDateStrip();
+    loadMatches(API_BASE);
+  });
+}
+
+// NEXT DATE
+const dateNextBtn = $('#dateNextBtn');
+
+if (dateNextBtn) {
+  dateNextBtn.addEventListener('click', () => {
+    changeMatchDate(1);
+  });
+}
+
 
 
 
