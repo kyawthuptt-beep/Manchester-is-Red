@@ -19,6 +19,11 @@ let followedPlayers = JSON.parse(
 let allMatches = [];
 let currentStandings = [];
 let currentLeague = 'PL';
+// MATCH FILTER SETTINGS
+let currentMatchType = 'ALL';
+let currentMatchLeague = '';
+let currentMatchSeason = '';
+let currentMatchTeam = '';
 let selectedDate = null;
 let scoreRefreshBusy = false;
 
