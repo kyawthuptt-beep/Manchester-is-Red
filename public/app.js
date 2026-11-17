@@ -289,32 +289,13 @@ async function loadOfficialNews() {
    MATCH DATE HELPERS
 ========================================= */
 
+
 function getMatchDate(value) {
   if (!value) return null;
 
-  const match = String(value).match(
-    /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s+(\d{2}):(\d{2})\s+UTC$/
-  );
+  const d = new Date(value);
 
-  if (!match) return null;
-
-  const months = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3,
-    May: 4, Jun: 5, Jul: 6, Aug: 7,
-    Sep: 8, Oct: 9, Nov: 10, Dec: 11
-  };
-
-  const month = months[match[2]];
-
-  if (month === undefined) return null;
-
-  return new Date(Date.UTC(
-    Number(match[3]),
-    month,
-    Number(match[1]),
-    Number(match[4]),
-    Number(match[5])
-  ));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 
