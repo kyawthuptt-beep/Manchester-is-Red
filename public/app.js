@@ -623,7 +623,42 @@ if (selectedDate) {
   list.innerHTML = html;
 }
 
+function setupMatchFilters() {
+  const typeFilter = $('#matchTypeFilter');
+  const leagueFilter = $('#leagueFilter');
+  const seasonFilter = $('#seasonFilter');
+  const teamFilter = $('#teamFilter');
 
+  if (typeFilter) {
+    typeFilter.addEventListener('change', () => {
+      currentMatchType = typeFilter.value;
+      loadMatches(API_BASE);
+    });
+  }
+
+  if (leagueFilter) {
+    leagueFilter.addEventListener('change', () => {
+      currentMatchLeague = leagueFilter.value;
+      currentMatchSeason = '';
+      if (seasonFilter) seasonFilter.value = '';
+      loadMatches(API_BASE);
+    });
+  }
+
+  if (seasonFilter) {
+    seasonFilter.addEventListener('change', () => {
+      currentMatchSeason = seasonFilter.value;
+      loadMatches(API_BASE);
+    });
+  }
+
+  if (teamFilter) {
+    teamFilter.addEventListener('change', () => {
+      currentMatchTeam = teamFilter.value;
+      loadMatches(API_BASE);
+    });
+  }
+}
 async function loadMatches(base) {
   const url = new URL(base + '/matches');
 
