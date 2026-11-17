@@ -636,6 +636,7 @@ if (selectedDate && !currentMatchSeason) {
 }
 
 
+
 function setupMatchFilters() {
   if (matchFiltersInitialized) return;
 
@@ -654,6 +655,10 @@ function setupMatchFilters() {
   if (leagueFilter) {
     leagueFilter.addEventListener('change', () => {
       currentMatchLeague = leagueFilter.value;
+      currentMatchTeam = '';
+
+      if (teamFilter) teamFilter.value = '';
+
       currentMatchSeason = '';
 
       if (seasonFilter) seasonFilter.value = '';
@@ -664,6 +669,13 @@ function setupMatchFilters() {
 
   if (seasonFilter) {
     seasonFilter.addEventListener('change', () => {
+      if (!currentMatchLeague) {
+        seasonFilter.value = '';
+        currentMatchSeason = '';
+        alert('Please select a league first.');
+        return;
+      }
+
       currentMatchSeason = seasonFilter.value;
       loadMatches(API_BASE);
     });
@@ -672,12 +684,22 @@ function setupMatchFilters() {
   if (teamFilter) {
     teamFilter.addEventListener('change', () => {
       currentMatchTeam = teamFilter.value;
+
+      if (currentMatchTeam) {
+        currentMatchLeague = '';
+        currentMatchSeason = '';
+
+        if (leagueFilter) leagueFilter.value = '';
+        if (seasonFilter) seasonFilter.value = '';
+      }
+
       loadMatches(API_BASE);
     });
   }
 
   matchFiltersInitialized = true;
 }
+
 
 
 async function loadMatches(base) {
