@@ -24,6 +24,7 @@ let currentMatchType = 'ALL';
 let currentMatchLeague = '';
 let currentMatchSeason = '';
 let currentMatchTeam = '';
+let matchFiltersInitialized = false;
 let selectedDate = null;
 let scoreRefreshBusy = false;
 
@@ -623,7 +624,10 @@ if (selectedDate) {
   list.innerHTML = html;
 }
 
+
 function setupMatchFilters() {
+  if (matchFiltersInitialized) return;
+
   const typeFilter = $('#matchTypeFilter');
   const leagueFilter = $('#leagueFilter');
   const seasonFilter = $('#seasonFilter');
@@ -640,7 +644,9 @@ function setupMatchFilters() {
     leagueFilter.addEventListener('change', () => {
       currentMatchLeague = leagueFilter.value;
       currentMatchSeason = '';
+
       if (seasonFilter) seasonFilter.value = '';
+
       loadMatches(API_BASE);
     });
   }
@@ -658,7 +664,10 @@ function setupMatchFilters() {
       loadMatches(API_BASE);
     });
   }
+
+  matchFiltersInitialized = true;
 }
+
 async function loadMatches(base) {
   const url = new URL(base + '/matches');
 
@@ -783,7 +792,7 @@ async function loadTable(base) {
 
 
 
-async function loadLive() {
+async function loadLive() {  setupMatchFilters();
   $('#matchList').innerHTML =
     '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
 
