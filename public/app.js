@@ -25,7 +25,7 @@ let currentMatchLeague = '';
 let currentMatchSeason = '';
 let currentMatchTeam = '';
 let matchFiltersInitialized = false;
-let selectedDate = null;
+let selectedDate = todayKey();
 let scoreRefreshBusy = false;
 
 const demoStories = [
