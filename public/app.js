@@ -342,7 +342,7 @@ function updateDateLabel() {
 
   if (!el) return;
 
-  if (!selectedDate) {
+  if (selectedDate && !currentMatchSeason) {
     el.textContent = 'All Matches';
     return;
   }
