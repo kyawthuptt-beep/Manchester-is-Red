@@ -467,54 +467,6 @@ if (dateNextBtn) {
   });
 }
 
-
-
-
-
-function changeMatchDate(amount) {
-  const current = selectedDate || todayKey();
-
-  const d = new Date(current + 'T12:00:00');
-
-  d.setDate(d.getDate() + amount);
-
-  selectedDate = dateKey(d);
-
-  updateDateLabel();
-  loadMatches(API_BASE);
-}
-
-
-// MATCH DATE BUTTONS
-
-const datePrevBtn = document.getElementById('datePrevBtn');
-const dateTodayBtn = document.getElementById('dateTodayBtn');
-const dateNextBtn = document.getElementById('dateNextBtn');
-
-// Previous day
-if (datePrevBtn) {
-  datePrevBtn.addEventListener('click', () => {
-    changeMatchDate(-1);
-  });
-}
-
-// Today
-if (dateTodayBtn) {
-  dateTodayBtn.addEventListener('click', () => {
-    selectedDate = todayKey();
-    updateDateLabel();
-    loadMatches(API_BASE);
-  });
-}
-
-// Next day
-if (dateNextBtn) {
-  dateNextBtn.addEventListener('click', () => {
-    changeMatchDate(1);
-  });
-}
-
-
 /* =========================================
    MATCHES
 ========================================= */
@@ -1789,14 +1741,41 @@ if (
    APP STARTUP
 ========================================= */
 
-setLang(lang);
 
+setLang(lang);
 renderStories();
 renderSaved();
 renderFollowing();
 renderPlayerFollowing();
+
 updateDateLabel();
+renderDateStrip();
 localClock();
+
+loadLive();
+loadOfficialNews();
+
+window.addEventListener('online', () => {
+  console.log('FOOTBALL WORLD: Internet restored');
+
+  loadLive();
+  loadOfficialNews();
+});
+
+window.addEventListener('offline', () => {
+  $('#apiDot')?.classList.remove('ok');
+
+  if ($('#apiStatus')) {
+    $('#apiStatus').textContent = 'OFFLINE';
+  }
+
+  if ($('#dataMode')) {
+    $('#dataMode').textContent = 'OFFLINE';
+  }
+});
+
+console.log('FOOTBALL WORLD APP STARTED');
+
 
 
 loadLive();
