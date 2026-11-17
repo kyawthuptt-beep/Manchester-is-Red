@@ -879,8 +879,12 @@ async function loadTable(base) {
 
 
 
-async function loadLive() {  setupMatchFilters();
-loadTeamFilterOptions(); 
+
+async function loadLive() {
+  setupMatchFilters();
+  setupFollowingTabs();
+  loadTeamFilterOptions();
+
 $('#matchList').innerHTML =
     '<div class="empty">ပွဲစဉ်များ ရယူနေသည်... / Loading fixtures...</div>';
 
@@ -1007,6 +1011,47 @@ setInterval(() => {
   }
 }, 60000);
 
+
+/* =========================================
+   FOLLOWING TABS
+========================================= */
+
+function setupFollowingTabs() {
+  const tabs = document.querySelectorAll(
+    '[data-following-tab]'
+  );
+
+  const teamsPanel = $('#followingTeamsPanel');
+  const playersPanel = $('#followingPlayersPanel');
+
+  if (!tabs.length || !teamsPanel || !playersPanel) {
+    return;
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const selected = tab.dataset.followingTab;
+
+      tabs.forEach(item => {
+        item.classList.toggle(
+          'active',
+          item === tab
+        );
+      });
+
+      teamsPanel.hidden = selected !== 'teams';
+      playersPanel.hidden = selected !== 'players';
+
+      if (selected === 'teams') {
+        renderFollowing();
+      }
+
+      if (selected === 'players') {
+        renderPlayerFollowing();
+      }
+    });
+  });
+}
 
 /* =========================================
    FOLLOWING TEAMS
