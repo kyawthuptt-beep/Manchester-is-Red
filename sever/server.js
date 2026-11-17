@@ -539,6 +539,12 @@ app.get("/api/health", (req, res) => {
 const MATCHES_CACHE_TTL = 60 * 1000;
 const matchesApiCache = new Map();
 
+
+/* =========================================
+   MATCHES API
+   Date / League / Season / Team Fixtures
+========================================= */
+
 app.get("/api/matches", async (req, res) => {
   if (!TOKEN) {
     return res.status(503).json({
@@ -549,77 +555,154 @@ app.get("/api/matches", async (req, res) => {
   }
 
   try {
-    const requestedDate = req.query.date;
-    let dateFrom;
-    let dateTo;
+    const {
+      date,
+      dateFrom: requestedFrom,
+      dateTo: requestedTo,
+      competition,
+      season,
+      teamId
+    } = req.query;
 
-    if (requestedDate) {
-      if (
-        typeof requestedDate !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
-      ) {
+    const isValidDate = value =>
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      !isNaN(Date.parse(value)) &&
+      new Date(value).toISOString().slice(0, 10) === value;
+
+    let endpoint = "";
+
+    
+    const params = new URLSearchParams();
+
+    if (date && (requestedFrom || requestedTo)) {
+      return res.status(400).json({
+        mode: "error",
+        error: "Use date OR dateFrom/dateTo, not both",
+        matches: []
+      });
+    }
+
+    if (competition && teamId !== undefined) {
+      return res.status(400).json({
+        mode: "error",
+        error: "Use competition OR teamId, not both",
+        matches: []
+      });
+    }
+
+    let dateFrom = null;
+    let dateTo = null;
+
+    const hasExplicitDate = Boolean(
+      date || requestedFrom || requestedTo
+    );
+
+    if (date) {
+      if (!isValidDate(date)) {
         return res.status(400).json({
           mode: "error",
-          error: "Invalid date format. Use YYYY-MM-DD",
+          error: "Invalid date format",
           matches: []
         });
       }
 
-      const selected = new Date(
-        requestedDate + "T00:00:00Z"
-      );
+      dateFrom = date;
+      dateTo = date;
 
+    } else if (requestedFrom || requestedTo) {
       if (
-        isNaN(selected.getTime()) ||
-        selected.toISOString().slice(0, 10) !== requestedDate
+        (requestedFrom && !isValidDate(requestedFrom)) ||
+        (requestedTo && !isValidDate(requestedTo))
       ) {
         return res.status(400).json({
           mode: "error",
-          error: "Invalid calendar date",
+          error: "Invalid date range",
           matches: []
         });
       }
 
-      const timezoneOffset =
-        req.query.timezoneOffset === undefined
-          ? 0
-          : Number(req.query.timezoneOffset);
+      dateFrom = requestedFrom || requestedTo;
+      dateTo = requestedTo || requestedFrom;
 
-      if (
-        !Number.isInteger(timezoneOffset) ||
-        timezoneOffset < -840 ||
-        timezoneOffset > 840
-      ) {
+      if (dateFrom > dateTo) {
         return res.status(400).json({
           mode: "error",
-          error: "Invalid timezone offset",
+          error: "dateFrom cannot be after dateTo",
+          matches: []
+        });
+      }
+    }
+
+    if (season !== undefined) {
+      if (!/^\d{4}$/.test(String(season))) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid season",
           matches: []
         });
       }
 
-      const localStart = new Date(
-        selected.getTime() + timezoneOffset * 60000
-      );
+      if (!competition || teamId !== undefined) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Full season requires a competition code",
+          matches: []
+        });
+      }
 
-      const localEnd = new Date(
-        localStart.getTime() + 86400000
-      );
+      params.set("season", String(season));
+    }
 
-      dateFrom = localStart.toISOString().slice(0, 10);
-      dateTo = localEnd.toISOString().slice(0, 10);
+    if (competition) {
+      if (!/^[A-Za-z0-9_-]+$/.test(String(competition))) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid competition code",
+          matches: []
+        });
+      }
+    }
 
-    } else {
+    if (hasExplicitDate) {
+      params.set("dateFrom", dateFrom);
+      params.set("dateTo", dateTo);
+
+    } else if (season === undefined) {
       const today = new Date();
 
       dateFrom = today.toISOString().slice(0, 10);
 
-      const tomorrow = new Date(today);
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      const nextWeek = new Date(today);
+      nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
 
-      dateTo = tomorrow.toISOString().slice(0, 10);
+      dateTo = nextWeek.toISOString().slice(0, 10);
+
+      params.set("dateFrom", dateFrom);
+      params.set("dateTo", dateTo);
     }
 
-    const cacheKey = `${dateFrom}_${dateTo}`;
+    if (teamId !== undefined) {
+      if (!/^\d+$/.test(String(teamId))) {
+        return res.status(400).json({
+          mode: "error",
+          error: "Invalid teamId",
+          matches: []
+        });
+      }
+
+      endpoint =
+        `/teams/${teamId}/matches?${params.toString()}`;
+
+    } else if (competition) {
+      endpoint =
+        `/competitions/${encodeURIComponent(competition)}/matches?${params.toString()}`;
+
+    } else {
+      endpoint = `/matches?${params.toString()}`;
+    }
+
+    const cacheKey = `matches_${endpoint}`;
+
     let data;
     let cacheHit = false;
 
@@ -631,11 +714,8 @@ app.get("/api/matches", async (req, res) => {
     ) {
       data = cached.data;
       cacheHit = true;
-
     } else {
-      data = await football(
-        `/matches?dateFrom=${dateFrom}&dateTo=${dateTo}`
-      );
+      data = await football(endpoint);
 
       matchesApiCache.set(cacheKey, {
         time: Date.now(),
@@ -659,7 +739,10 @@ app.get("/api/matches", async (req, res) => {
 
       if (statusCode === "IN_PLAY") {
         status = "IN_PLAY";
-      } else if (statusCode === "PAUSED") {
+      } else if (
+        statusCode === "PAUSED" ||
+        statusCode === "HALF_TIME"
+      ) {
         status = "HALF_TIME";
       } else if (statusCode === "FINISHED") {
         status = "FINISHED";
@@ -669,34 +752,19 @@ app.get("/api/matches", async (req, res) => {
         status = "PAUSED";
       }
 
-      const goals = item.goals || [];
-      const lastGoal = goals.length
-        ? goals[goals.length - 1]
-        : null;
-
       const scoreData = item.score || {};
 
-      let homeScore = null;
-      let awayScore = null;
+      const homeScore =
+        status === "FINISHED"
+          ? scoreData.fullTime?.home
+          : scoreData.fullTime?.home ??
+            scoreData.halfTime?.home;
 
-      if (status === "FINISHED") {
-        homeScore = scoreData.fullTime?.home;
-        awayScore = scoreData.fullTime?.away;
-      } else if (
-        status === "IN_PLAY" ||
-        status === "HALF_TIME" ||
-        status === "PAUSED"
-      ) {
-        homeScore =
-          lastGoal?.score?.home ??
-          scoreData.halfTime?.home ??
-          0;
-
-        awayScore =
-          lastGoal?.score?.away ??
-          scoreData.halfTime?.away ??
-          0;
-      }
+      const awayScore =
+        status === "FINISHED"
+          ? scoreData.fullTime?.away
+          : scoreData.fullTime?.away ??
+            scoreData.halfTime?.away;
 
       const kickoff = item.utcDate
         ? new Date(item.utcDate)
@@ -720,15 +788,22 @@ app.get("/api/matches", async (req, res) => {
         competition:
           item.competition?.name || "Competition",
 
-        home: item.homeTeam?.name || "TBC",
-        homeLogo: item.homeTeam?.crest || "",
+        home:
+          item.homeTeam?.name || "TBC",
 
-        away: item.awayTeam?.name || "TBC",
-        awayLogo: item.awayTeam?.crest || "",
+        homeLogo:
+          item.homeTeam?.crest || "",
 
-        score: hasScore
-          ? `${homeScore} - ${awayScore}`
-          : "—",
+        away:
+          item.awayTeam?.name || "TBC",
+
+        awayLogo:
+          item.awayTeam?.crest || "",
+
+        score:
+          hasScore
+            ? `${homeScore} - ${awayScore}`
+            : "—",
 
         status,
         minute: item.minute ?? null,
@@ -741,6 +816,8 @@ app.get("/api/matches", async (req, res) => {
       source: "football-data.org",
       dateFrom,
       dateTo,
+      season: season ? Number(season) : null,
+      competition: competition || null,
       total: matches.length,
       cacheHit,
       matches
@@ -760,8 +837,6 @@ app.get("/api/matches", async (req, res) => {
     });
   }
 });
-
-
 
 // STANDINGS API
 app.get("/api/standings", async (req, res) => {
