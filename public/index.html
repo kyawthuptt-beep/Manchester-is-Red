@@ -233,17 +233,17 @@
     </section>
 
 
-  
 <!-- FOLLOWING SECTION -->
 <section class="section pale" id="following">
 
   <div class="section-head">
     <div>
       <span class="eyebrow">YOUR FOOTBALL</span>
-      <h2 data-my="သင် Follow လုပ်ထားသော အသင်းနှင့် ကစားသမားများ"
+      <h2 data-my="သင်နှစ်သက်သော အသင်းများနှင့် ကစားသမားများ"
           data-en="Your Following">
-        သင် Follow လုပ်ထားသော အသင်းနှင့် ကစားသမားများ
+        သင်နှစ်သက်သော အသင်းများနှင့် ကစားသမားများ
       </h2>
+
       <p class="muted"
          data-my="နှစ်သက်ရာ အသင်းများနှင့် ကစားသမားများကို စုစည်းကြည့်ရှုပါ။"
          data-en="Keep track of your favourite teams and players.">
@@ -252,49 +252,117 @@
     </div>
   </div>
 
-  <div class="feature-placeholder">
+  <!-- FOLLOWING TABS -->
+  <div class="following-tabs">
 
-    <div class="feature-icon">⭐</div>
+    <button
+      type="button"
+      class="following-tab active"
+      data-following-tab="teams">
 
-    <h3 data-my="Follow လုပ်ထားသော အသင်းများ"
-        data-en="Your Favourite Teams">
-      Follow လုပ်ထားသော အသင်းများ
-    </h3>
+      ⚽
+      <span data-my="အသင်းများ" data-en="Teams">
+        အသင်းများ
+      </span>
 
-    <p data-my="ပွဲစဉ်များထဲမှ + Follow ကိုနှိပ်ပြီး အသင်းများကို ရွေးချယ်ပါ။"
-       data-en="Tap + Follow on any match to add your favourite teams.">
-      ပွဲစဉ်များထဲမှ + Follow ကိုနှိပ်ပြီး အသင်းများကို ရွေးချယ်ပါ။
-    </p>
+    </button>
+
+    <button
+      type="button"
+      class="following-tab"
+      data-following-tab="players">
+
+      👤
+      <span data-my="ကစားသမားများ" data-en="Players">
+        ကစားသမားများ
+      </span>
+
+    </button>
 
   </div>
 
-  <div class="player-following-area">
+  <!-- TEAMS PANEL -->
+  <div id="followingTeamsPanel"
+       class="following-panel">
+
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">TEAM TRACKER</span>
+
+        <h3 data-my="နှစ်သက်သော အသင်းများ"
+            data-en="Favourite Teams">
+          နှစ်သက်သော အသင်းများ
+        </h3>
+
+        <p class="muted"
+           data-my="Club Teams နှင့် National Teams များ"
+           data-en="Club Teams and National Teams">
+          Club Teams နှင့် National Teams များ
+        </p>
+      </div>
+    </div>
+
+    <div class="feature-placeholder">
+
+      <div class="feature-icon">⭐</div>
+
+      <h3 data-my="Follow လုပ်ထားသော အသင်းများ"
+          data-en="Your Favourite Teams">
+        Follow လုပ်ထားသော အသင်းများ
+      </h3>
+
+      <p data-my="ပွဲစဉ်များထဲမှ + Follow ကိုနှိပ်ပြီး အသင်းများကို ရွေးချယ်ပါ။"
+         data-en="Tap + Follow on any match to add your favourite teams.">
+        ပွဲစဉ်များထဲမှ + Follow ကိုနှိပ်ပြီး အသင်းများကို ရွေးချယ်ပါ။
+      </p>
+
+    </div>
+
+  </div>
+
+  <!-- PLAYERS PANEL -->
+  <div id="followingPlayersPanel"
+       class="following-panel"
+       hidden>
 
     <div class="section-head">
       <div>
         <span class="eyebrow">PLAYER TRACKER</span>
+
         <h3 data-my="နှစ်သက်သော ကစားသမားများ"
             data-en="Favourite Players">
           နှစ်သက်သော ကစားသမားများ
         </h3>
+
+        <p class="muted"
+           data-my="သင်နှစ်သက်သော ကမ္ဘာ့ဘောလုံးသမားများ"
+           data-en="Your favourite football players">
+          သင်နှစ်သက်သော ကမ္ဘာ့ဘောလုံးသမားများ
+        </p>
       </div>
     </div>
 
-    <div id="playerFollowingList" class="feature-placeholder">
+    <div id="playerFollowingList"
+         class="feature-placeholder">
+
       <div class="feature-icon">⚽</div>
+
       <h3 data-my="ကစားသမား မရွေးချယ်ရသေးပါ"
           data-en="No Players Followed Yet">
         ကစားသမား မရွေးချယ်ရသေးပါ
       </h3>
-      <p data-my="မကြာမီ ကစားသမား Follow စနစ် ထည့်သွင်းပါမယ်။"
-         data-en="Player following will be available soon.">
-        မကြာမီ ကစားသမား Follow စနစ် ထည့်သွင်းပါမယ်။
+
+      <p data-my="နှစ်သက်သော ကစားသမားများကို Follow လုပ်နိုင်ပါမယ်။"
+         data-en="Follow your favourite football players.">
+        နှစ်သက်သော ကစားသမားများကို Follow လုပ်နိုင်ပါမယ်။
       </p>
+
     </div>
 
   </div>
 
 </section>
+
 
 <!-- TEAM PROFILE -->
 <section class="section" id="teamProfile" hidden>
