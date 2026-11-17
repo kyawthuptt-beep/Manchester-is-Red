@@ -526,7 +526,18 @@ function renderMatches() {
 
   let arr = [...allMatches];
 
+  // FILTER BY MATCH TYPE
+  if (currentMatchType === 'LIVE') {
+    arr = arr.filter(isLiveMatch);
 
+  } else if (currentMatchType === 'FINISHED') {
+    arr = arr.filter(isFinishedMatch);
+
+  } else if (currentMatchType === 'UPCOMING') {
+    arr = arr.filter(m =>
+      !isLiveMatch(m) && !isFinishedMatch(m)
+    );
+  }
 
 // FILTER BY SELECTED DATE (LOCAL TIMEZONE)
 if (selectedDate) {
