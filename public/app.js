@@ -679,15 +679,31 @@ function setupMatchFilters() {
   matchFiltersInitialized = true;
 }
 
+
 async function loadMatches(base) {
   const url = new URL(base + '/matches');
 
-  // Send selected local date
-  if (selectedDate) {
+  // FULL SEASON: do not send selected date
+  if (!currentMatchSeason && selectedDate) {
     url.searchParams.set('date', selectedDate);
   }
 
-  // Send device timezone offset
+  // LEAGUE FILTER
+  if (currentMatchLeague && !currentMatchTeam) {
+    url.searchParams.set('competition', currentMatchLeague);
+  }
+
+  // FULL SEASON FILTER
+  if (currentMatchSeason) {
+    url.searchParams.set('season', currentMatchSeason);
+  }
+
+  // TEAM FILTER
+  if (currentMatchTeam) {
+    url.searchParams.set('teamId', currentMatchTeam);
+  }
+
+  // DEVICE TIMEZONE OFFSET
   url.searchParams.set(
     'timezoneOffset',
     String(new Date().getTimezoneOffset())
@@ -711,6 +727,7 @@ async function loadMatches(base) {
 
   renderMatches();
 }
+
 
 
 /* =========================================
