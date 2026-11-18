@@ -516,7 +516,8 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
   }
 });
 
-// KICKOFF API TEAM SEARCH TEST
+
+// KICKOFF API ENGLAND TEAMS TEST
 app.get("/api/test-kickoff-teams", async (req, res) => {
   try {
     if (!KICKOFF_API_KEY) {
@@ -526,20 +527,24 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
       });
     }
 
-    const search = String(
-      req.query.search || "Manchester United"
+    const country = String(
+      req.query.country || "England"
     ).trim();
 
-    if (!search || search.length > 80) {
-      return res.status(400).json({
-        ok: false,
-        message: "Invalid search term"
-      });
-    }
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 200, 1),
+      2000
+    );
+
+    const cursor = Math.max(
+      Number(req.query.cursor) || 0,
+      0
+    );
 
     const params = new URLSearchParams({
-      search,
-      limit: "20"
+      country,
+      limit: String(limit),
+      cursor: String(cursor)
     });
 
     const response = await fetch(
@@ -570,7 +575,7 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
     res.json({
       ok: true,
       provider: "KickoffAPI",
-      search,
+      country,
       total: teams.length,
       meta: body.meta || {},
       teams: teams.map(item => ({
@@ -578,8 +583,7 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
         name: item.name || "",
         country: item.country || "",
         logo: item.logo || ""
-      })),
-      rawSample: teams.slice(0, 3)
+      }))
     });
 
   } catch (error) {
@@ -590,6 +594,7 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
     });
   }
 });
+
 
 // RSS XML HELPERS
 function xmlValue(block, tag) {
