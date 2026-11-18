@@ -366,7 +366,15 @@ app.get("/api/test-kickoff", async (req, res) => {
     });
   }
 });
+// KICKOFF API LEAGUE SEARCH TEST
+app.get("/api/test-kickoff", async (req, res) => {
+  // လက်ရှိ League Search Code အားလုံး
+});
 
+// ဒီနေရာမှာ Fixtures Test Code အသစ် စမယ်
+app.get("/api/test-kickoff-fixtures", async (req, res) => {
+  // Fixtures Test Code
+});
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
