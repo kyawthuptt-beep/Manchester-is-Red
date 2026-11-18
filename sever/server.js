@@ -2068,6 +2068,55 @@ app.get("/api/test-kickoff-v2-fixtures-quality", async (req, res) => {
   }
 });
 
+// KICKOFF API V2 LEAGUE ID CHECK
+app.get("/api/test-kickoff-v2-league-id-check", async (req, res) => {
+  try {
+    const url = new URL(
+      "https://api.kickoffapi.com/api/v2/fixtures"
+    );
+
+    url.searchParams.set("league", "39");
+    url.searchParams.set("season", "2026");
+    url.searchParams.set("limit", "10");
+
+    const response = await fetch(url, {
+      headers: { "x-api-key": KICKOFF_API_KEY },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const body = await response.json();
+
+    res.status(response.status).json({
+      ok: response.ok,
+      test: "legacy-league-id-check",
+      requestedLeague: "39",
+      totalReturned: body.data?.length || 0,
+      meta: body.meta || {},
+      leagueIdsReturned: [
+        ...new Set(
+          (body.data || []).map(fx => fx.league?.id || "MISSING")
+        )
+      ],
+      sample: (body.data || []).slice(0, 5).map(fx => ({
+        id: fx.id,
+        date: fx.date,
+        league: fx.league,
+        home: fx.home?.name,
+        away: fx.away?.name,
+        status: fx.status?.short,
+        score: fx.score
+      })),
+      error: body.error || null
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
