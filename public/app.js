@@ -1070,8 +1070,17 @@ setInterval(() => {
 /* =========================================
    FOLLOWING TABS
 ========================================= */
+let followingTabsInitialized = false;
+
+/* =========================================
+   FOLLOWING TABS
+========================================= */
+
+let followingTabsInitialized = false;
 
 function setupFollowingTabs() {
+  if (followingTabsInitialized) return;
+
   const tabs = document.querySelectorAll(
     '[data-following-tab]'
   );
@@ -1106,7 +1115,10 @@ function setupFollowingTabs() {
       }
     });
   });
+
+  followingTabsInitialized = true;
 }
+
 
 /* =========================================
    FOLLOWING TEAMS
@@ -1774,31 +1786,5 @@ window.addEventListener('offline', () => {
   }
 });
 
-console.log('FOOTBALL WORLD APP STARTED');
-
-
-
-loadLive();
-loadOfficialNews();
-
-window.addEventListener('online', () => {
-  console.log('FOOTBALL WORLD: Internet restored');
-
-  loadLive();
-  loadOfficialNews();
-});
-
-window.addEventListener('offline', () => {
-  $('#apiDot')?.classList.remove('ok');
-
-  if ($('#apiStatus')) {
-    $('#apiStatus').textContent = 'OFFLINE';
-  }
-
-  if ($('#dataMode')) {
-    $('#dataMode').textContent = 'OFFLINE';
-  }
-});
-
-console.log('FOOTBALL WORLD APP STARTED');
+console.log('FOOTBALL WORLD APP STARTED' );
 
