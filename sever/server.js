@@ -368,12 +368,162 @@ app.get("/api/test-kickoff", async (req, res) => {
 });
 // KICKOFF API LEAGUE SEARCH TEST
 app.get("/api/test-kickoff", async (req, res) => {
-  // လက်ရှိ League Search Code အားလုံး
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const search = String(
+      req.query.search || "AFCON"
+    ).trim();
+
+    if (!search || search.length > 80) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid search term"
+      });
+    }
+
+    const params = new URLSearchParams({
+      search,
+      limit: "20"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/leagues?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: data.error || data.message || data
+      });
+    }
+
+    const leagues = Array.isArray(data.data)
+      ? data.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      search,
+      total: leagues.length,
+      leagues: leagues.map(item => ({
+        id: item.id,
+        name: item.name,
+        country: item.country || ""
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
 });
 
-// ဒီနေရာမှာ Fixtures Test Code အသစ် စမယ်
+
+// KICKOFF API PREMIER LEAGUE FIXTURES TEST
 app.get("/api/test-kickoff-fixtures", async (req, res) => {
-  // Fixtures Test Code
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const league = String(
+      req.query.league || "lg_LxmgPz3lWqFz"
+    ).trim();
+
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 10, 1),
+      20
+    );
+
+    if (!/^[A-Za-z0-9_-]+$/.test(league)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid league ID"
+      });
+    }
+
+    const params = new URLSearchParams({
+      league,
+      limit: String(limit)
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/fixtures?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const fixtures = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      league,
+      total: fixtures.length,
+      meta: body.meta || {},
+      fixtures: fixtures.map(item => ({
+        id: item.id,
+        date: item.date || "",
+        league: item.league?.name || "",
+        home: item.home?.name ||
+              item.homeTeam?.name || "TBC",
+        away: item.away?.name ||
+              item.awayTeam?.name || "TBC",
+        homeScore: item.score?.home ?? null,
+        awayScore: item.score?.away ?? null,
+        status: item.status?.short ||
+                item.status || "UNKNOWN",
+        minute: item.status?.elapsed ?? null
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
 });
 // RSS XML HELPERS
 function xmlValue(block, tag) {
