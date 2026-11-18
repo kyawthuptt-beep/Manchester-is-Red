@@ -596,6 +596,72 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
 });
 
 
+ // KICKOFF API PREMIER LEAGUE STANDINGS TEST
+app.get("/api/test-kickoff-standings", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const league = String(
+      req.query.league || "lg_LxmgPz3lWqFz"
+    ).trim();
+
+    const season = Number(req.query.season) || 2026;
+
+    const params = new URLSearchParams({
+      league,
+      season: String(season)
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/standings?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const standings = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      league,
+      season,
+      total: standings.length,
+      meta: body.meta || {},
+      rawSample: standings.slice(0, 5),
+      standings
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
