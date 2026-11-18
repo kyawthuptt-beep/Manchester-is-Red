@@ -1067,16 +1067,13 @@ setInterval(() => {
 }, 60000);
 
 
-/* =========================================
-   FOLLOWING TABS
-========================================= */
-let followingTabsInitialized = false;
 
 /* =========================================
    FOLLOWING TABS
 ========================================= */
 
 let followingTabsInitialized = false;
+
 
 function setupFollowingTabs() {
   if (followingTabsInitialized) return;
