@@ -1883,6 +1883,46 @@ app.get("/api/test-openfootball-score-formats", async (req, res) => {
   }
 });
 
+// OPENFOOTBALL ZERO SCORE MATCH INSPECTION
+app.get("/api/test-openfootball-zero-score-matches", async (req, res) => {
+  try {
+    const url =
+      "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json";
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenFootball HTTP ${response.status}`);
+    }
+
+    const body = await response.json();
+    const matches = body.matches || [];
+
+    const zeroScoreMatches = matches.filter(match =>
+      Array.isArray(match.score) &&
+      match.score.length === 2 &&
+      match.score[0] === 0 &&
+      match.score[1] === 0
+    );
+
+    res.json({
+      ok: true,
+      source: "OpenFootball",
+      season: "2026-27",
+      totalZeroScoreMatches: zeroScoreMatches.length,
+      matches: zeroScoreMatches
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
