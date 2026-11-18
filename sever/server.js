@@ -1623,24 +1623,7 @@ app.get("/api/news", async (req, res) => {
   }
 });
 
-// STATIC FRONTEND
-app.use(
-  express.static(path.join(__dirname, "../public"))
-);
-
-app.get("*", (req, res) => {
-  res.sendFile(
-    path.join(__dirname, "../public/index.html")
-  );
-});
-
-// START SERVER
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `FOOTBALL WORLD listening on ${PORT}`
-  );
-});
- // KICKOFF API V1 STANDINGS TEST
+// KICKOFF API V1 STANDINGS TEST
 app.get("/api/test-kickoff-v1-standings", async (req, res) => {
   try {
     const url =
@@ -1683,6 +1666,7 @@ app.get("/api/test-kickoff-v1-standings", async (req, res) => {
     });
   }
 });
+
 // KICKOFF API V2 FULL STANDINGS TEST
 app.get("/api/test-kickoff-v2-standings", async (req, res) => {
   try {
@@ -1730,4 +1714,23 @@ app.get("/api/test-kickoff-v2-standings", async (req, res) => {
       error: error.message
     });
   }
+});
+
+// STATIC FRONTEND
+app.use(
+  express.static(path.join(__dirname, "../public"))
+);
+
+// FRONTEND FALLBACK
+app.get("*", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "../public/index.html")
+  );
+});
+
+// START SERVER — MUST BE LAST
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `FOOTBALL WORLD listening on ${PORT}`
+  );
 });
