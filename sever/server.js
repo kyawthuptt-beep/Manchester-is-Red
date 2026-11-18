@@ -1683,3 +1683,51 @@ app.get("/api/test-kickoff-v1-standings", async (req, res) => {
     });
   }
 });
+// KICKOFF API V2 FULL STANDINGS TEST
+app.get("/api/test-kickoff-v2-standings", async (req, res) => {
+  try {
+    const league = "lg_LxmgPz3lWqFz";
+    const season = 2026;
+
+    const url = new URL(
+      "https://api.kickoffapi.com/api/v2/standings"
+    );
+
+    url.searchParams.set("league", league);
+    url.searchParams.set("season", season);
+
+    const response = await fetch(url, {
+      headers: { "x-api-key": KICKOFF_API_KEY },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    const text = await response.text();
+
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { rawResponse: text.slice(0, 2000) };
+    }
+
+    res.status(response.status).json({
+      ok: response.ok,
+      provider: "KickoffAPI",
+      version: "v2",
+      httpStatus: response.status,
+      requestedLeague: league,
+      season,
+      meta: body.meta || {},
+      total: body.data?.length || 0,
+      standings: body.data || [],
+      error: body.error || null
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
