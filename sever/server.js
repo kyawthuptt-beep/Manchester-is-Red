@@ -366,80 +366,8 @@ app.get("/api/test-kickoff", async (req, res) => {
     });
   }
 });
-// KICKOFF API LEAGUE SEARCH TEST
-app.get("/api/test-kickoff", async (req, res) => {
-  try {
-    if (!KICKOFF_API_KEY) {
-      return res.status(503).json({
-        ok: false,
-        message: "KICKOFF_API_KEY is missing"
-      });
-    }
 
-    const search = String(
-      req.query.search || "AFCON"
-    ).trim();
-
-    if (!search || search.length > 80) {
-      return res.status(400).json({
-        ok: false,
-        message: "Invalid search term"
-      });
-    }
-
-    const params = new URLSearchParams({
-      search,
-      limit: "20"
-    });
-
-    const response = await fetch(
-      "https://api.kickoffapi.com/api/v2/leagues?" +
-      params.toString(),
-      {
-        headers: {
-          "x-api-key": KICKOFF_API_KEY
-        },
-        signal: AbortSignal.timeout(15000)
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        ok: false,
-        provider: "KickoffAPI",
-        error: data.error || data.message || data
-      });
-    }
-
-    const leagues = Array.isArray(data.data)
-      ? data.data
-      : [];
-
-    res.json({
-      ok: true,
-      provider: "KickoffAPI",
-      search,
-      total: leagues.length,
-      leagues: leagues.map(item => ({
-        id: item.id,
-        name: item.name,
-        country: item.country || ""
-      }))
-    });
-
-  } catch (error) {
-    res.status(502).json({
-      ok: false,
-      provider: "KickoffAPI",
-      error: error.message
-    });
-  }
-});
-
-
-// KICKOFF API PREMIER LEAGUE FIXTURES TEST
+// KICKOFF API PREMIER LEAGUE SEASON FIXTURES
 app.get("/api/test-kickoff-fixtures", async (req, res) => {
   try {
     if (!KICKOFF_API_KEY) {
@@ -453,9 +381,16 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
       req.query.league || "lg_LxmgPz3lWqFz"
     ).trim();
 
+    const season = Number(req.query.season) || 2026;
+
     const limit = Math.min(
-      Math.max(Number(req.query.limit) || 10, 1),
-      20
+      Math.max(Number(req.query.limit) || 200, 1),
+      2000
+    );
+
+    const cursor = Math.max(
+      Number(req.query.cursor) || 0,
+      0
     );
 
     if (!/^[A-Za-z0-9_-]+$/.test(league)) {
@@ -467,8 +402,49 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
 
     const params = new URLSearchParams({
       league,
-      limit: String(limit)
+      season: String(season),
+      limit: String(limit),
+      cursor: String(cursor)
     });
+
+    const from = req.query.from
+      ? String(req.query.from).trim()
+      : "";
+
+    const to = req.query.to
+      ? String(req.query.to).trim()
+      : "";
+
+    const validDate = value =>
+      /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      !Number.isNaN(Date.parse(value));
+
+    if ((from && !validDate(from)) ||
+        (to && !validDate(to))) {
+      return res.status(400).json({
+        ok: false,
+        message: "Date must use YYYY-MM-DD"
+      });
+    }
+
+    if (Boolean(from) !== Boolean(to)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Both from and to dates are required"
+      });
+    }
+
+    if (from && to) {
+      if (from > to) {
+        return res.status(400).json({
+          ok: false,
+          message: "from date must not be after to date"
+        });
+      }
+
+      params.set("from", from);
+      params.set("to", to);
+    }
 
     const response = await fetch(
       "https://api.kickoffapi.com/api/v2/fixtures?" +
@@ -499,21 +475,21 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
       ok: true,
       provider: "KickoffAPI",
       league,
+      season,
       total: fixtures.length,
       meta: body.meta || {},
       fixtures: fixtures.map(item => ({
         id: item.id,
         date: item.date || "",
         league: item.league?.name || "",
-        home: item.home?.name ||
-              item.homeTeam?.name || "TBC",
-        away: item.away?.name ||
-              item.awayTeam?.name || "TBC",
+        home: item.home?.name || "TBC",
+        away: item.away?.name || "TBC",
         homeScore: item.score?.home ?? null,
         awayScore: item.score?.away ?? null,
-        status: item.status?.short ||
-                item.status || "UNKNOWN",
-        minute: item.status?.elapsed ?? null
+        status: item.status?.short || "UNKNOWN",
+        minute: item.status?.elapsed ?? null,
+        homeLogo: item.home?.logo || "",
+        awayLogo: item.away?.logo || ""
       }))
     });
 
@@ -525,6 +501,7 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
     });
   }
 });
+
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
