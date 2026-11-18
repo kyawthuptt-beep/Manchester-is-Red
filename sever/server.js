@@ -719,7 +719,33 @@ app.get("/api/test-kickoff-standings", async (req, res) => {
     });
   }
 });
+// KICKOFF API LEAGUE DATA SOURCE TEST
+app.get("/api/test-kickoff-source", async (req, res) => {
+  try {
+    const league = "lg_LxmgPz3lWqFz";
 
+    const response = await fetch(
+      `https://api.kickoffapi.com/api/v2/leagues/${league}/source`,
+      {
+        headers: { "x-api-key": KICKOFF_API_KEY },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    res.status(response.status).json({
+      ok: response.ok,
+      provider: "KickoffAPI",
+      data: body
+    });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
