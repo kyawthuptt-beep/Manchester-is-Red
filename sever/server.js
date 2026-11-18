@@ -471,26 +471,40 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
       ? body.data
       : [];
 
-    res.json({
+        res.json({
       ok: true,
       provider: "KickoffAPI",
       league,
       season,
       total: fixtures.length,
+
       meta: body.meta || {},
+
       fixtures: fixtures.map(item => ({
         id: item.id,
         date: item.date || "",
+
         league: item.league?.name || "",
+
+        homeId: item.home?.id || "",
         home: item.home?.name || "TBC",
+        homeLogo: item.home?.logo || "",
+
+        awayId: item.away?.id || "",
         away: item.away?.name || "TBC",
+        awayLogo: item.away?.logo || "",
+
         homeScore: item.score?.home ?? null,
         awayScore: item.score?.away ?? null,
+
         status: item.status?.short || "UNKNOWN",
+        statusLong: item.status?.long || "",
         minute: item.status?.elapsed ?? null,
-        homeLogo: item.home?.logo || "",
-        awayLogo: item.away?.logo || ""
-      }))
+
+        source: item.source || ""
+      })),
+
+      rawSample: fixtures.slice(0, 3)
     });
 
   } catch (error) {
