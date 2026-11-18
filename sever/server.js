@@ -1640,3 +1640,46 @@ app.listen(PORT, "0.0.0.0", () => {
     `FOOTBALL WORLD listening on ${PORT}`
   );
 });
+ // KICKOFF API V1 STANDINGS TEST
+app.get("/api/test-kickoff-v1-standings", async (req, res) => {
+  try {
+    const url =
+      "https://api.kickoffapi.com/api/v1/standings?league=39&season=2026";
+
+    const response = await fetch(url, {
+      headers: { "x-api-key": KICKOFF_API_KEY },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const body = await response.json();
+
+    res.status(response.status).json({
+      ok: response.ok,
+      provider: "KickoffAPI",
+      version: "v1",
+      league: 39,
+      season: 2026,
+      total: body.results || 0,
+      standings: (body.response || []).map(row => ({
+        rank: row.rank,
+        team: row.team,
+        points: row.points,
+        played: row.allPlayed,
+        won: row.allWin,
+        drawn: row.allDraw,
+        lost: row.allLose,
+        goalsFor: row.allGoalsFor,
+        goalsAgainst: row.allGoalsAgainst,
+        goalsDiff: row.goalsDiff,
+        form: row.form,
+        source: row.source
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
