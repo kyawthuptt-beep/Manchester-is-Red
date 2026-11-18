@@ -561,9 +561,10 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
         source: item.source || ""
       })),
 
-      rawSample: fixtures.slice(0, 3)
+          rawSample: fixtures.slice(0, 3),
+
+      diagnostics
     });
-diagnostics,
   } catch (error) {
     res.status(502).json({
       ok: false,
