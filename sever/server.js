@@ -787,6 +787,118 @@ app.get("/api/test-openfootball", async (req, res) => {
   }
 });
 
+ // OPENFOOTBALL STANDINGS TEST
+app.get("/api/test-openfootball-standings", async (req, res) => {
+  try {
+    const url =
+      "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json";
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const body = await response.json();
+    const matches = body.matches || [];
+    const table = {};
+
+    let completedMatches = 0;
+
+    for (const match of matches) {
+      const home = match.team1;
+      const away = match.team2;
+      const score = match.score?.ft;
+
+      if (!home || !away) continue;
+
+      for (const name of [home, away]) {
+        if (!table[name]) {
+          table[name] = {
+            team: name,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalsDiff: 0,
+            points: 0
+          };
+        }
+      }
+
+      if (
+        !Array.isArray(score) ||
+        score.length !== 2 ||
+        !score.every(Number.isFinite)
+      ) continue;
+
+      const [hg, ag] = score;
+      const h = table[home];
+      const a = table[away];
+
+      completedMatches++;
+
+      h.played++;
+      a.played++;
+
+      h.goalsFor += hg;
+      h.goalsAgainst += ag;
+      a.goalsFor += ag;
+      a.goalsAgainst += hg;
+
+      if (hg > ag) {
+        h.won++;
+        h.points += 3;
+        a.lost++;
+      } else if (hg < ag) {
+        a.won++;
+        a.points += 3;
+        h.lost++;
+      } else {
+        h.drawn++;
+        a.drawn++;
+        h.points++;
+        a.points++;
+      }
+    }
+
+    const standings = Object.values(table)
+      .map(team => ({
+        ...team,
+        goalsDiff: team.goalsFor - team.goalsAgainst
+      }))
+      .sort((a, b) =>
+        b.points - a.points ||
+        b.goalsDiff - a.goalsDiff ||
+        b.goalsFor - a.goalsFor
+      )
+      .map((team, index) => ({
+        rank: index + 1,
+        ...team
+      }));
+
+    res.json({
+      ok: true,
+      source: "OpenFootball",
+      league: body.name,
+      totalFixtures: matches.length,
+      completedMatches,
+      totalTeams: standings.length,
+      standings
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
