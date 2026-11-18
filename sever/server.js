@@ -746,6 +746,47 @@ app.get("/api/test-kickoff-source", async (req, res) => {
     });
   }
 });
+
+// OPENFOOTBALL ORIGINAL DATA TEST
+app.get("/api/test-openfootball", async (req, res) => {
+  try {
+    const url =
+      "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json";
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenFootball HTTP ${response.status}`);
+    }
+
+    const body = await response.json();
+    const matches = body.matches || [];
+
+    const keys = matches.map(match =>
+      `${match.date}|${match.team1}|${match.team2}`.toLowerCase()
+    );
+
+    const duplicates = keys.length - new Set(keys).size;
+
+    res.json({
+      ok: true,
+      source: "OpenFootball",
+      league: body.name,
+      totalMatches: matches.length,
+      duplicateMatches: duplicates,
+      firstFiveMatches: matches.slice(0, 5)
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
 // RSS XML HELPERS
 function xmlValue(block, tag) {
   const re = new RegExp(
