@@ -1923,6 +1923,151 @@ app.get("/api/test-openfootball-zero-score-matches", async (req, res) => {
   }
 });
 
+// KICKOFF API V2 FIXTURES QUALITY TEST
+app.get("/api/test-kickoff-v2-fixtures-quality", async (req, res) => {
+  try {
+    const league = "lg_LxmgPz3lWqFz";
+    const season = 2026;
+
+    const url = new URL(
+      "https://api.kickoffapi.com/api/v2/fixtures"
+    );
+
+    url.searchParams.set("league", league);
+    url.searchParams.set("season", season);
+    url.searchParams.set("limit", "200");
+
+    const response = await fetch(url, {
+      headers: { "x-api-key": KICKOFF_API_KEY },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const text = await response.text();
+
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { rawResponse: text.slice(0, 2000) };
+    }
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        httpStatus: response.status,
+        error: body.error || body.rawResponse || "API request failed"
+      });
+    }
+
+    const fixtures = body.data || [];
+
+    const statusCounts = {};
+    const duplicateGroups = {};
+    const issues = [];
+
+    for (const fx of fixtures) {
+      const status = fx.status?.short || "UNKNOWN";
+
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+      const home = fx.home?.name || "UNKNOWN";
+      const away = fx.away?.name || "UNKNOWN";
+      const date = fx.date?.slice(0, 10) || "NO_DATE";
+
+      const key = `${date}|${home}|${away}`;
+
+      if (!duplicateGroups[key]) {
+        duplicateGroups[key] = [];
+      }
+
+      duplicateGroups[key].push({
+        id: fx.id,
+        date: fx.date,
+        status,
+        score: fx.score
+      });
+
+      if (fx.league?.id !== league) {
+        issues.push({
+          type: "WRONG_LEAGUE_ID",
+          fixtureId: fx.id,
+          actualLeague: fx.league?.id || null
+        });
+      }
+
+      if (!fx.home?.id || !fx.away?.id) {
+        issues.push({
+          type: "MISSING_TEAM_ID",
+          fixtureId: fx.id,
+          home: fx.home?.name,
+          away: fx.away?.name
+        });
+      }
+
+      if (
+        ["FT", "AET", "PEN"].includes(status) &&
+        (
+          !Number.isFinite(fx.score?.home) ||
+          !Number.isFinite(fx.score?.away)
+        )
+      ) {
+        issues.push({
+          type: "MISSING_FINISHED_SCORE",
+          fixtureId: fx.id,
+          home,
+          away,
+          status
+        });
+      }
+    }
+
+    const duplicates = Object.entries(duplicateGroups)
+      .filter(([key, rows]) => rows.length > 1)
+      .map(([key, rows]) => ({ key, rows }));
+
+    const completedMatches = fixtures.filter(fx =>
+      ["FT", "AET", "PEN"].includes(fx.status?.short)
+    );
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      test: "v2-fixtures-quality",
+      httpStatus: response.status,
+      requestedLeague: league,
+      season,
+      pageSize: 200,
+      totalReturned: fixtures.length,
+      completedMatches: completedMatches.length,
+      meta: body.meta || {},
+      statusCounts,
+      duplicateGroups: duplicates.length,
+      duplicates,
+      issueCount: issues.length,
+      issues: issues.slice(0, 30),
+      sampleFinishedMatches: completedMatches.slice(0, 10).map(fx => ({
+        id: fx.id,
+        date: fx.date,
+        home: fx.home?.name,
+        away: fx.away?.name,
+        homeId: fx.home?.id || null,
+        awayId: fx.away?.id || null,
+        score: fx.score,
+        status: fx.status?.short,
+        source: fx.source || null
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
