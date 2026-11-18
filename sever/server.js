@@ -170,14 +170,23 @@ function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
+
 // FOOTBALL DATA API
 async function football(pathname) {
+  const headers = {
+    "X-Auth-Token": TOKEN
+  };
+
+  // MATCH EVENTS
+  if (pathname.includes("/matches")) {
+    headers["X-Unfold-Bookings"] = "true";
+    headers["X-Unfold-Goals"] = "true";
+  }
+
   const response = await fetch(
     "https://api.football-data.org/v4" + pathname,
     {
-      headers: {
-        "X-Auth-Token": TOKEN
-      }
+      headers
     }
   );
 
@@ -199,6 +208,7 @@ async function football(pathname) {
 
   return JSON.parse(body);
 }
+
 
 // API NINJAS FOOTBALL TEST
 app.get("/api/test-api-ninjas", async (req, res) => {
