@@ -493,6 +493,7 @@ function isFollowed(name) {
 }
 
 
+
 function renderMatch(m) {
   const home = String(m.home || 'TBC');
   const away = String(m.away || 'TBC');
@@ -501,55 +502,121 @@ function renderMatch(m) {
   const awayFollowed = isFollowed(away);
 
   const status = String(m.status || 'SCHEDULED').toUpperCase();
-const liveMinute = isLiveMatch(m) && m.minute != null
-  ? `${m.minute}${m.injuryTime ? `+${m.injuryTime}` : ''}′`
-  : '';
+
+  const liveMinute = isLiveMatch(m) && m.minute != null
+    ? `${m.minute}${m.injuryTime ? `+${m.injuryTime}` : ''}′`
+    : '';
+
   const statusClass = isLiveMatch(m)
     ? 'live'
     : isFinishedMatch(m)
       ? 'finished'
       : 'scheduled';
 
+  // EVENT MINUTE
+  function eventMinute(event) {
+    if (event.minute == null) return '';
+
+    return `${event.minute}${
+      event.injuryTime ? `+${event.injuryTime}` : ''
+    }′`;
+  }
+
+  // GOAL EVENTS
+  const goals = Array.isArray(m.goals) ? m.goals : [];
+
+  const goalEvents = goals.map(goal => {
+    const minute = eventMinute(goal);
+    const scorer = goal.scorer || 'Unknown';
+    const team = goal.team || '';
+
+    const goalType = String(goal.type || '').toUpperCase();
+
+    const typeLabel = goalType === 'PENALTY'
+      ? ' (P)'
+      : goalType === 'OWN'
+        ? ' (OG)'
+        : '';
+
+    return `
+      <div class="match-event goal-event">
+        <span class="event-icon">⚽</span>
+        <span class="event-minute">${esc(minute)}</span>
+        <span class="event-player">${esc(scorer + typeLabel)}</span>
+        <span class="event-team">${esc(team)}</span>
+      </div>
+    `;
+  }).join('');
+
+  // RED CARD EVENTS ONLY
+  const redCards = Array.isArray(m.redCards)
+    ? m.redCards
+    : [];
+
+  const redCardEvents = redCards.map(card => {
+    const minute = eventMinute(card);
+    const player = card.player || 'Unknown';
+    const team = card.team || '';
+
+    return `
+      <div class="match-event red-card-event">
+        <span class="event-icon">🟥</span>
+        <span class="event-minute">${esc(minute)}</span>
+        <span class="event-player">${esc(player)}</span>
+        <span class="event-team">${esc(team)}</span>
+      </div>
+    `;
+  }).join('');
+
+  const matchEvents = goalEvents + redCardEvents;
+
   return `
     <article class="match">
 
       <div class="match-head">
         <span>${esc(m.competition || 'MATCH')}</span>
+
         <span class="${statusClass}">
-  ${esc(status)}
-  ${liveMinute ? ' • ' + esc(liveMinute) : ''}
-</span>
+          ${esc(status)}
+          ${liveMinute ? ' • ' + esc(liveMinute) : ''}
+        </span>
       </div>
 
       <div class="match-teams">
 
-  <div class="match-team">
-    ${m.homeLogo ? `
-      <img
-        src="${safeUrl(m.homeLogo)}"
-        alt="${esc(home)}"
-        class="team-logo">
-    ` : ''}
+        <div class="match-team">
+          ${m.homeLogo ? `
+            <img
+              src="${safeUrl(m.homeLogo)}"
+              alt="${esc(home)}"
+              class="team-logo">
+          ` : ''}
 
-    <b>${esc(home)}</b>
-  </div>
+          <b>${esc(home)}</b>
+        </div>
 
-  <span class="score">
-    ${esc(m.score || '—')}
-  </span>
+        <span class="score">
+          ${esc(m.score || '—')}
+        </span>
 
-  <div class="match-team">
-    ${m.awayLogo ? `
-      <img
-        src="${safeUrl(m.awayLogo)}"
-        alt="${esc(away)}"
-        class="team-logo">
-    ` : ''}
+        <div class="match-team">
+          ${m.awayLogo ? `
+            <img
+              src="${safeUrl(m.awayLogo)}"
+              alt="${esc(away)}"
+              class="team-logo">
+          ` : ''}
 
-    <b>${esc(away)}</b>
-  </div>
+          <b>${esc(away)}</b>
+        </div>
 
-</div>
+      </div>
+
+      ${matchEvents ? `
+        <div class="match-events">
+          ${matchEvents}
+        </div>
+      ` : ''}
 
       <small>${esc(formatMatchDate(m.date))}</small>
 
@@ -572,6 +639,7 @@ const liveMinute = isLiveMatch(m) && m.minute != null
     </article>
   `;
 }
+
 
 
 function renderMatches() {
