@@ -1716,6 +1716,41 @@ app.get("/api/test-kickoff-v2-standings", async (req, res) => {
   }
 });
 
+// KICKOFF API V2 STANDINGS SOURCE TEST
+app.get("/api/test-kickoff-v2-source", async (req, res) => {
+  try {
+    const league = "lg_LxmgPz3lWqFz";
+
+    const url = new URL(
+      `https://api.kickoffapi.com/api/v2/leagues/${league}/source`
+    );
+
+    const response = await fetch(url, {
+      headers: { "x-api-key": KICKOFF_API_KEY },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    const body = await response.json();
+
+    res.status(response.status).json({
+      ok: response.ok,
+      provider: "KickoffAPI",
+      test: "standings-source",
+      httpStatus: response.status,
+      sourceData: body.data || null,
+      meta: body.meta || {},
+      error: body.error || null
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
