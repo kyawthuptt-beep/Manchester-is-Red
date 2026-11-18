@@ -1751,6 +1751,138 @@ app.get("/api/test-kickoff-v2-source", async (req, res) => {
   }
 });
 
+// OPENFOOTBALL SCORE FORMAT VALIDATION TEST
+app.get("/api/test-openfootball-score-formats", async (req, res) => {
+  try {
+    const url =
+      "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json";
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenFootball HTTP ${response.status}`);
+    }
+
+    const body = await response.json();
+    const matches = body.matches || [];
+
+    const stats = {};
+    const scoreFormats = {
+      ftObject: 0,
+      scoreArray: 0,
+      missingScore: 0,
+      other: 0
+    };
+
+    for (const match of matches) {
+      for (const team of [match.team1, match.team2]) {
+        if (!stats[team]) {
+          stats[team] = {
+            team,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            points: 0
+          };
+        }
+      }
+
+      let score = null;
+      let format = "missing";
+
+      if (
+        Array.isArray(match.score?.ft) &&
+        match.score.ft.length === 2
+      ) {
+        score = match.score.ft;
+        format = "ftObject";
+      } else if (
+        Array.isArray(match.score) &&
+        match.score.length === 2 &&
+        match.score.every(Number.isFinite)
+      ) {
+        score = match.score;
+        format = "scoreArray";
+      } else if (match.score) {
+        format = "other";
+      }
+
+      scoreFormats[format]++;
+
+      if (!score) continue;
+
+      const [homeGoals, awayGoals] = score;
+
+      const home = stats[match.team1];
+      const away = stats[match.team2];
+
+      home.played++;
+      away.played++;
+
+      home.goalsFor += homeGoals;
+      home.goalsAgainst += awayGoals;
+
+      away.goalsFor += awayGoals;
+      away.goalsAgainst += homeGoals;
+
+      if (homeGoals > awayGoals) {
+        home.won++;
+        home.points += 3;
+        away.lost++;
+      } else if (homeGoals < awayGoals) {
+        away.won++;
+        away.points += 3;
+        home.lost++;
+      } else {
+        home.drawn++;
+        away.drawn++;
+        home.points++;
+        away.points++;
+      }
+    }
+
+    const standings = Object.values(stats)
+      .map(team => ({
+        ...team,
+        goalsDiff: team.goalsFor - team.goalsAgainst
+      }))
+      .sort((a, b) =>
+        b.points - a.points ||
+        b.goalsDiff - a.goalsDiff ||
+        b.goalsFor - a.goalsFor
+      )
+      .map((team, index) => ({
+        rank: index + 1,
+        ...team
+      }));
+
+    res.json({
+      ok: true,
+      source: "OpenFootball",
+      season: "2026-27",
+      totalFixtures: matches.length,
+      scoreFormats,
+      calculatedMatches:
+        scoreFormats.ftObject + scoreFormats.scoreArray,
+      standings,
+      warning:
+        "Array scores are counted as results for diagnostic comparison; verify their meaning before production use."
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      source: "OpenFootball",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
