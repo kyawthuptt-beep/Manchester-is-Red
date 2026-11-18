@@ -471,6 +471,63 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
       ? body.data
       : [];
 
+    // FIXTURE DATA DIAGNOSTICS
+    const groups = {};
+
+    for (const item of fixtures) {
+      const date = String(item.date || "").slice(0, 10);
+      const home = String(item.home?.name || "TBC").toLowerCase().trim();
+      const away = String(item.away?.name || "TBC").toLowerCase().trim();
+
+      const key = `${date}|${home}|${away}`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          date,
+          home,
+          away,
+          count: 0,
+          ids: [],
+          statuses: [],
+          leagueIds: []
+        };
+      }
+
+      groups[key].count++;
+
+      if (item.id) groups[key].ids.push(item.id);
+
+      groups[key].statuses.push(
+        item.status?.short || "UNKNOWN"
+      );
+
+      if (item.league?.id) {
+        groups[key].leagueIds.push(item.league.id);
+      }
+    }
+
+    const duplicateMatches = Object.values(groups)
+      .filter(item => item.count > 1);
+
+    const statusConflicts = Object.values(groups)
+      .filter(item => new Set(item.statuses).size > 1);
+
+    const leagueIds = [
+      ...new Set(
+        fixtures
+          .map(item => item.league?.id)
+          .filter(Boolean)
+      )
+    ];
+
+    const diagnostics = {
+      totalFixtures: fixtures.length,
+      uniqueMatchGroups: Object.keys(groups).length,
+      duplicateMatches,
+      statusConflicts,
+      returnedLeagueIds: leagueIds
+    };
+
         res.json({
       ok: true,
       provider: "KickoffAPI",
@@ -506,7 +563,7 @@ app.get("/api/test-kickoff-fixtures", async (req, res) => {
 
       rawSample: fixtures.slice(0, 3)
     });
-
+diagnostics,
   } catch (error) {
     res.status(502).json({
       ok: false,
