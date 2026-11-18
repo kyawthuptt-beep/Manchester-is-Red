@@ -815,9 +815,33 @@ app.get("/api/matches", async (req, res) => {
             ? `${homeScore} - ${awayScore}`
             : "—",
 
-        status,
-        minute: item.minute ?? null,
-        injuryTime: item.injuryTime ?? null
+        
+status,
+minute: item.minute ?? null,
+injuryTime: item.injuryTime ?? null,
+
+// GOAL EVENTS
+goals: (item.goals || []).map(goal => ({
+  minute: goal.minute ?? null,
+  injuryTime: goal.injuryTime ?? null,
+  team: goal.team?.name || "",
+  scorer: goal.scorer?.name || "",
+  type: goal.type || "REGULAR"
+})),
+
+// RED CARD EVENTS ONLY
+redCards: (item.bookings || [])
+  .filter(card =>
+    card.card === "RED" ||
+    card.card === "YELLOW_RED"
+  )
+  .map(card => ({
+    minute: card.minute ?? null,
+    team: card.team?.name || "",
+    player: card.player?.name || "",
+    card: card.card
+  }))
+
       };
     });
 
