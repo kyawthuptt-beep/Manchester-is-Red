@@ -711,7 +711,71 @@ app.get("/api/test-kickoff-team-squad/:id", async (req, res) => {
     });
   }
 });
- // KICKOFF API PREMIER LEAGUE STANDINGS TEST
+
+// KICKOFF API RAW TEAM FIELDS DIAGNOSTIC TEST
+app.get("/api/test-kickoff-raw-fields", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const params = new URLSearchParams({
+      limit: "3",
+      cursor: "0"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/teams?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const teams = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      totalReturned: teams.length,
+      meta: body.meta || {},
+
+      dataFields: teams.length > 0
+        ? Object.keys(teams[0])
+        : [],
+
+      sampleTeams: teams
+
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
+// KICKOFF API PREMIER LEAGUE STANDINGS TEST
 app.get("/api/test-kickoff-standings", async (req, res) => {
   try {
     if (!KICKOFF_API_KEY) {
