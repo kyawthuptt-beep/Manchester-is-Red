@@ -3481,6 +3481,113 @@ app.get("/api/test-kickoff-league-team-anomalies/:leagueId", async (req, res) =>
   }
 });
 
+// KICKOFF API TEAM IDENTITY VALIDATION
+app.get("/api/test-kickoff-team-identity/:teamId", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const teamId = String(req.params.teamId || "").trim();
+
+    if (!teamId) {
+      return res.status(400).json({
+        ok: false,
+        message: "Team ID is required"
+      });
+    }
+
+    const params = new URLSearchParams({
+      limit: "2000",
+      cursor: "0"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/teams?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(30000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const allTeams = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    const exactIdMatches = allTeams.filter(team =>
+      String(team.id) === teamId
+    );
+
+    const nameMatches = allTeams.filter(team =>
+      String(team.name || "").trim().toLowerCase() === "sveikata"
+    );
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      diagnostic: "Team Identity Validation",
+      requestedTeamId: teamId,
+
+      directory: {
+        returnedTeams: allTeams.length,
+        totalRows: body.meta?.totalRows ?? null,
+        count: body.meta?.count ?? null,
+        cursor: body.meta?.cursor ?? null,
+        nextCursor: body.meta?.nextCursor ?? null,
+        source: body.meta?.source ?? null
+      },
+
+      summary: {
+        exactIdFound: exactIdMatches.length > 0,
+        exactIdMatchCount: exactIdMatches.length,
+        sameNameFound: nameMatches.length > 0,
+        sameNameCount: nameMatches.length
+      },
+
+      exactIdMatches: exactIdMatches.map(team => ({
+        id: team.id || null,
+        name: team.name || null,
+        country: team.country || null,
+        website: team.website || null,
+        source: team.source || null,
+        raw: team
+      })),
+
+      sameNameMatches: nameMatches.map(team => ({
+        id: team.id || null,
+        name: team.name || null,
+        country: team.country || null,
+        website: team.website || null,
+        source: team.source || null
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      diagnostic: "Team Identity Validation",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
