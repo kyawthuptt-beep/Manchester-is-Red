@@ -18,6 +18,7 @@ let followedPlayers = JSON.parse(
 );
 let allMatches = [];
 let currentStandings = [];
+let activeTeamProfile = '';
 let currentLeague = 'PL';
 // MATCH FILTER SETTINGS
 let currentMatchType = 'ALL';
@@ -304,8 +305,6 @@ function getMatchDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-
-
 function formatMatchDate(value) {
   const d = getMatchDate(value);
 
@@ -498,9 +497,6 @@ function renderMatch(m) {
   const home = String(m.home || 'TBC');
   const away = String(m.away || 'TBC');
 
-  const homeFollowed = isFollowed(home);
-  const awayFollowed = isFollowed(away);
-
   const status = String(m.status || 'SCHEDULED').toUpperCase();
 
   const liveMinute = isLiveMatch(m) && m.minute != null
@@ -582,35 +578,45 @@ function renderMatch(m) {
         </span>
       </div>
 
-      <div class="match-teams">
+      
+<div class="match-teams">
 
-        <div class="match-team">
-          ${m.homeLogo ? `
-            <img
-              src="${safeUrl(m.homeLogo)}"
-              alt="${esc(home)}"
-              class="team-logo">
-          ` : ''}
+  <button
+    type="button"
+    class="match-team team-profile-link match-team-button"
+    data-open-team="${esc(home)}">
 
-          <b>${esc(home)}</b>
-        </div>
+    ${m.homeLogo ? `
+      <img
+        src="${safeUrl(m.homeLogo)}"
+        alt="${esc(home)}"
+        class="team-logo">
+    ` : ''}
 
-        <span class="score">
-          ${esc(m.score || '—')}
-        </span>
+    <b>${esc(home)}</b>
+  </button>
 
-        <div class="match-team">
-          ${m.awayLogo ? `
-            <img
-              src="${safeUrl(m.awayLogo)}"
-              alt="${esc(away)}"
-              class="team-logo">
-          ` : ''}
+  <span class="score">
+    ${esc(m.score || '—')}
+  </span>
 
-          <b>${esc(away)}</b>
-        </div>
+  <button
+    type="button"
+    class="match-team team-profile-link match-team-button"
+    data-open-team="${esc(away)}">
 
-      </div>
+    ${m.awayLogo ? `
+      <img
+        src="${safeUrl(m.awayLogo)}"
+        alt="${esc(away)}"
+        class="team-logo">
+    ` : ''}
+
+    <b>${esc(away)}</b>
+  </button>
+
+</div>
+
 
       ${matchEvents ? `
         <div class="match-events">
@@ -620,21 +626,7 @@ function renderMatch(m) {
 
       <small>${esc(formatMatchDate(m.date))}</small>
 
-      <div class="match-follow-actions">
-
-        <button
-          class="save"
-          data-follow="${esc(home)}">
-          ${homeFollowed ? '★ Following' : '+ Follow'}
-        </button>
-
-        <button
-          class="save"
-          data-follow="${esc(away)}">
-          ${awayFollowed ? '★ Following' : '+ Follow'}
-        </button>
-
-      </div>
+      <div>
 
     </article>
   `;
@@ -1238,7 +1230,7 @@ function renderFollowing() {
       <p>
         ${t(
        'အသင်းတစ်သင်းရဲ့ Profile ထဲဝင်ပြီး Follow လုပ်နိုင်ပါတယ်။',
-          'Tap + Follow on any match to add your favourite teams.'
+          'Open a Team Profile to follow your favourite teams.'
         )}
       </p>
     `;
@@ -1279,6 +1271,35 @@ function renderFollowing() {
 /* =========================================
    TEAM PROFILE
 ========================================= */
+
+function renderTeamProfileFollow(team) {
+
+  const nameEl = $('#teamProfileName');
+
+  if (!nameEl) return;
+
+  let wrap = $('#teamProfileFollowWrap');
+
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'teamProfileFollowWrap';
+
+    nameEl.insertAdjacentElement('afterend', wrap);
+  }
+
+  wrap.innerHTML = `
+    <button
+      type="button"
+      class="save"
+      data-follow="${esc(team)}">
+
+      ${isFollowed(team)
+        ? '★ Following'
+        : '+ Follow'}
+
+    </button>
+  `;
+}
 
 async function openTeamProfile(team) {
 
