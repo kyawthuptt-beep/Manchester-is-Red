@@ -585,9 +585,9 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
       });
     }
 
-    const country = String(
-      req.query.country || "England"
-    ).trim();
+   const country = req.query.country
+  ? String(req.query.country).trim()
+  : ""; 
 
     const limit = Math.min(
       Math.max(Number(req.query.limit) || 200, 1),
@@ -600,10 +600,13 @@ app.get("/api/test-kickoff-teams", async (req, res) => {
     );
 
     const params = new URLSearchParams({
-      country,
-      limit: String(limit),
-      cursor: String(cursor)
-    });
+  limit: String(limit),
+  cursor: String(cursor)
+});
+
+if (country) {
+  params.set("country", country);
+}
 
     const response = await fetch(
       "https://api.kickoffapi.com/api/v2/teams?" +
