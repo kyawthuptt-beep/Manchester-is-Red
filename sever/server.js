@@ -2407,11 +2407,15 @@ app.get("/api/test-kickoff-country-teams", async (req, res) => {
       req.query.country || "Lithuania"
     ).trim();
 
-    const params = new URLSearchParams({
-      country,
-      limit: "10",
-      cursor: "0"
-    });
+    const cursor = String(
+  req.query.cursor || "0"
+).trim();
+
+const params = new URLSearchParams({
+  country,
+  limit: "10",
+  cursor
+});
 
     const response = await fetch(
       "https://api.kickoffapi.com/api/v2/teams?" +
