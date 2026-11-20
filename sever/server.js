@@ -2796,10 +2796,209 @@ app.get("/api/test-kickoff-league-audit/:leagueId", async (req, res) => {
   }
 });
 
+// KICKOFF API LEAGUE AGGREGATE DIAGNOSTIC
+app.get("/api/test-kickoff-league-aggregate/:leagueId", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const leagueId = String(req.params.leagueId || "").trim();
+    const season = String(req.query.season || "2026").trim();
+
+    const limit = 100;
+    const maxPages = 100;
+
+    let cursor = "0";
+    let pageCount = 0;
+    let nextCursor = null;
+
+    const allFixtures = [];
+    const pageSummary = [];
+    const teams = new Map();
+
+    while (pageCount < maxPages) {
+      const params = new URLSearchParams({
+        league: leagueId,
+        season,
+        limit: String(limit),
+        cursor
+      });
+
+      const response = await fetch(
+        "https://api.kickoffapi.com/api/v2/fixtures?" +
+        params.toString(),
+        {
+          headers: {
+            "x-api-key": KICKOFF_API_KEY
+          },
+          signal: AbortSignal.timeout(20000)
+        }
+      );
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          ok: false,
+          provider: "KickoffAPI",
+          failedCursor: cursor,
+          error: body.error || body.message || body
+        });
+      }
+
+      const fixtures = Array.isArray(body.data)
+        ? body.data
+        : [];
+
+      pageCount++;
+
+      allFixtures.push(...fixtures);
+
+      pageSummary.push({
+        page: pageCount,
+        cursor,
+        returned: fixtures.length,
+        nextCursor: body.meta?.nextCursor ?? null
+      });
+
+      fixtures.forEach(fixture => {
+        [fixture.home, fixture.away].forEach(team => {
+          if (team && team.id) {
+            teams.set(String(team.id), {
+              id: team.id,
+              name: team.name || "",
+              logo: team.logo || ""
+            });
+          }
+        });
+      });
+
+      nextCursor = body.meta?.nextCursor ?? null;
+
+      if (nextCursor === null || fixtures.length === 0) {
+        break;
+      }
+
+      if (String(nextCursor) === cursor) {
+        return res.status(502).json({
+          ok: false,
+          provider: "KickoffAPI",
+          message: "Pagination cursor did not change",
+          cursor,
+          pagesFetched: pageCount
+        });
+      }
+
+      cursor = String(nextCursor);
+    }
+
+    const fixtureIds = new Set();
+    let duplicateCount = 0;
+    let scoreCount = 0;
+
+    const statusCounts = {};
+    const dates = [];
+
+    allFixtures.forEach(fixture => {
+      const fixtureId = fixture.id
+        ? String(fixture.id)
+        : null;
+
+      if (fixtureId) {
+        if (fixtureIds.has(fixtureId)) {
+          duplicateCount++;
+        } else {
+          fixtureIds.add(fixtureId);
+        }
+      }
+
+      if (
+        fixture.score !== null &&
+        fixture.score !== undefined &&
+        fixture.score !== ""
+      ) {
+        scoreCount++;
+      }
+
+      const status = String(fixture.status || "UNKNOWN")
+        .toUpperCase();
+
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+      if (fixture.date) {
+        dates.push(String(fixture.date));
+      }
+    });
+
+    dates.sort();
+
+    const reachedEnd = nextCursor === null;
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      diagnostic: "League Aggregate",
+      requestedLeague: leagueId,
+      requestedSeason: season,
+
+      pagination: {
+        pagesFetched: pageCount,
+        pageLimit: limit,
+        lastCursor: cursor,
+        nextCursor,
+        reachedEnd,
+        maxPagesReached: pageCount >= maxPages && !reachedEnd
+      },
+
+      summary: {
+        totalFixtures: allFixtures.length,
+        uniqueFixtureIds: fixtureIds.size,
+        duplicateFixtures: duplicateCount,
+        uniqueTeams: teams.size,
+        scoreAvailable: scoreCount,
+        scoreMissing: allFixtures.length - scoreCount,
+        scoreCoveragePercent: allFixtures.length
+          ? Number((scoreCount / allFixtures.length * 100).toFixed(2))
+          : 0,
+        statusCounts,
+        firstFixtureDate: dates[0] || null,
+        lastFixtureDate: dates[dates.length - 1] || null
+      },
+
+      teams: [...teams.values()],
+
+      sampleFixtures: allFixtures.slice(0, 5).map(fixture => ({
+        id: fixture.id || "",
+        date: fixture.date || "",
+        home: fixture.home || null,
+        away: fixture.away || null,
+        status: fixture.status || null,
+        score: fixture.score ?? null,
+        league: fixture.league || null
+      })),
+
+      pageSummary
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      diagnostic: "League Aggregate",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
 );
+
 
 // FRONTEND FALLBACK
 app.get("*", (req, res) => {
