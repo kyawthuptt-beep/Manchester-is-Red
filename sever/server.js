@@ -2568,6 +2568,234 @@ app.get("/api/test-kickoff-league-fixtures/:leagueId", async (req, res) => {
   }
 });
 
+// KICKOFF API LEAGUE AGGREGATE AUDIT
+app.get("/api/test-kickoff-league-audit/:leagueId", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const leagueId = String(req.params.leagueId || "").trim();
+    const season = String(req.query.season || "2026").trim();
+    const limit = 10;
+    const maxPages = Math.min(
+      60,
+      Math.max(1, Number(req.query.maxPages) || 60)
+    );
+
+    let cursor = "0";
+    let pageCount = 0;
+    let stoppedReason = "unknown";
+
+    const fixtures = [];
+    const teams = new Map();
+    const fixtureIds = new Set();
+    const duplicateFixtureIds = [];
+
+    const statusCounts = {};
+    let scoreAvailable = 0;
+    let scoreMissing = 0;
+
+    while (pageCount < maxPages) {
+      const params = new URLSearchParams({
+        league: leagueId,
+        season,
+        limit: String(limit),
+        cursor
+      });
+
+      const response = await fetch(
+        "https://api.kickoffapi.com/api/v2/fixtures?" +
+        params.toString(),
+        {
+          headers: {
+            "x-api-key": KICKOFF_API_KEY
+          },
+          signal: AbortSignal.timeout(15000)
+        }
+      );
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        return res.status(502).json({
+          ok: false,
+          provider: "KickoffAPI",
+          failedPage: pageCount + 1,
+          failedCursor: cursor,
+          error: body.error || body.message || body
+        });
+      }
+
+      const pageFixtures = Array.isArray(body.data)
+        ? body.data
+        : [];
+
+      pageCount++;
+
+      if (pageFixtures.length === 0) {
+        stoppedReason = "empty_page";
+        break;
+      }
+
+      pageFixtures.forEach(fixture => {
+        fixtures.push(fixture);
+
+        if (fixture.id) {
+          if (fixtureIds.has(fixture.id)) {
+            duplicateFixtureIds.push(fixture.id);
+          } else {
+            fixtureIds.add(fixture.id);
+          }
+        }
+
+        [fixture.home, fixture.away].forEach(team => {
+          if (team && team.id) {
+            if (!teams.has(team.id)) {
+              teams.set(team.id, {
+                id: team.id,
+                name: team.name || "",
+                logo: team.logo || "",
+                appearances: 0
+              });
+            }
+
+            teams.get(team.id).appearances++;
+          }
+        });
+
+        const status =
+          fixture.status?.short ||
+          fixture.status?.long ||
+          "UNKNOWN";
+
+        statusCounts[status] =
+          (statusCounts[status] || 0) + 1;
+
+        if (
+          fixture.score !== null &&
+          fixture.score !== undefined
+        ) {
+          scoreAvailable++;
+        } else {
+          scoreMissing++;
+        }
+      });
+
+      const nextCursor = body.meta?.nextCursor;
+
+      if (
+        nextCursor === null ||
+        nextCursor === undefined ||
+        nextCursor === ""
+      ) {
+        stoppedReason = "nextCursor_null";
+        break;
+      }
+
+      const currentNumber = Number(cursor);
+      const nextNumber = Number(nextCursor);
+
+      if (
+        !Number.isFinite(nextNumber) ||
+        nextNumber <= currentNumber
+      ) {
+        stoppedReason = "invalid_nextCursor";
+        break;
+      }
+
+      cursor = String(nextCursor);
+    }
+
+    if (pageCount >= maxPages && stoppedReason === "unknown") {
+      stoppedReason = "max_pages_reached";
+    }
+
+    const sortedFixtures = [...fixtures].sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
+
+    const dates = fixtures
+      .map(f => f.date)
+      .filter(Boolean)
+      .sort();
+
+    const scoreSamples = fixtures
+      .filter(f => f.score !== null && f.score !== undefined)
+      .slice(0, 10)
+      .map(f => ({
+        id: f.id,
+        date: f.date,
+        home: f.home?.name || "",
+        away: f.away?.name || "",
+        score: f.score
+      }));
+
+    const missingScoreSamples = fixtures
+      .filter(f => f.score === null || f.score === undefined)
+      .slice(0, 10)
+      .map(f => ({
+        id: f.id,
+        date: f.date,
+        home: f.home?.name || "",
+        away: f.away?.name || "",
+        status: f.status || null
+      }));
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      audit: "league-season-aggregate",
+      requestedLeague: leagueId,
+      requestedSeason: season,
+
+      summary: {
+        totalFixtures: fixtures.length,
+        uniqueFixtureIds: fixtureIds.size,
+        duplicateFixtureCount: duplicateFixtureIds.length,
+        uniqueTeams: teams.size,
+        pagesFetched: pageCount,
+        pageSize: limit,
+        finalCursor: cursor,
+        stoppedReason,
+        firstFixtureDate: dates[0] || null,
+        lastFixtureDate: dates[dates.length - 1] || null
+      },
+
+      scoreAudit: {
+        scoreAvailable,
+        scoreMissing,
+        scoreSamples,
+        missingScoreSamples
+      },
+
+      statusCounts,
+
+      teams: [...teams.values()].sort(
+        (a, b) => a.name.localeCompare(b.name)
+      ),
+
+      duplicateFixtureIds,
+
+      pagination: {
+        completed: stoppedReason === "nextCursor_null",
+        stoppedReason,
+        maxPages
+      }
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
