@@ -3247,6 +3247,237 @@ app.get("/api/test-kickoff-league-team-validation/:leagueId", async (req, res) =
   }
 });
 
+// KICKOFF API LEAGUE TEAM ANOMALY VALIDATION
+app.get("/api/test-kickoff-league-team-anomalies/:leagueId", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const leagueId = String(req.params.leagueId || "").trim();
+    const season = String(req.query.season || "2026").trim();
+
+    const limit = 100;
+    const maxPages = 100;
+
+    let cursor = "0";
+    let pageCount = 0;
+    let nextCursor = null;
+
+    const allFixtures = [];
+    const teams = new Map();
+    const fixtureIds = new Set();
+
+    let duplicateFixtures = 0;
+
+    while (pageCount < maxPages) {
+      const params = new URLSearchParams({
+        league: leagueId,
+        season,
+        limit: String(limit),
+        cursor
+      });
+
+      const response = await fetch(
+        "https://api.kickoffapi.com/api/v2/fixtures?" +
+        params.toString(),
+        {
+          headers: {
+            "x-api-key": KICKOFF_API_KEY
+          },
+          signal: AbortSignal.timeout(20000)
+        }
+      );
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          ok: false,
+          provider: "KickoffAPI",
+          failedCursor: cursor,
+          error: body.error || body.message || body
+        });
+      }
+
+      const fixtures = Array.isArray(body.data)
+        ? body.data
+        : [];
+
+      pageCount++;
+      allFixtures.push(...fixtures);
+
+      fixtures.forEach(fixture => {
+        const fixtureId = fixture.id
+          ? String(fixture.id)
+          : null;
+
+        if (fixtureId) {
+          if (fixtureIds.has(fixtureId)) {
+            duplicateFixtures++;
+          } else {
+            fixtureIds.add(fixtureId);
+          }
+        }
+
+        [
+          { team: fixture.home, side: "home" },
+          { team: fixture.away, side: "away" }
+        ].forEach(({ team, side }) => {
+          if (!team?.id) return;
+
+          const id = String(team.id);
+
+          if (!teams.has(id)) {
+            teams.set(id, {
+              id,
+              names: [],
+              homeMatches: 0,
+              awayMatches: 0,
+              matches: []
+            });
+          }
+
+          const record = teams.get(id);
+
+          if (
+            team.name &&
+            !record.names.includes(team.name)
+          ) {
+            record.names.push(team.name);
+          }
+
+          if (side === "home") {
+            record.homeMatches++;
+          } else {
+            record.awayMatches++;
+          }
+
+          const opponent = side === "home"
+            ? fixture.away
+            : fixture.home;
+
+          record.matches.push({
+            fixtureId: fixture.id || null,
+            date: fixture.date || null,
+            side,
+            opponent: opponent?.name || null,
+            opponentId: opponent?.id || null,
+            status: fixture.status?.short ||
+              fixture.status?.long || "UNKNOWN",
+            score: fixture.score || null
+          });
+        });
+      });
+
+      nextCursor = body.meta?.nextCursor ?? null;
+
+      if (nextCursor === null || fixtures.length === 0) {
+        break;
+      }
+
+      if (String(nextCursor) === cursor) {
+        return res.status(502).json({
+          ok: false,
+          message: "Pagination cursor did not change",
+          cursor,
+          pagesFetched: pageCount
+        });
+      }
+
+      cursor = String(nextCursor);
+    }
+
+    const teamList = [...teams.values()].map(team => ({
+      id: team.id,
+      names: team.names,
+      name: team.names[0] || null,
+      homeMatches: team.homeMatches,
+      awayMatches: team.awayMatches,
+      fixtureCount: team.matches.length,
+      matches: team.matches
+    }));
+
+    const counts = teamList
+      .map(team => team.fixtureCount)
+      .sort((a, b) => a - b);
+
+    const middle = Math.floor(counts.length / 2);
+
+    const medianFixtures = counts.length === 0
+      ? 0
+      : counts.length % 2 === 0
+        ? (counts[middle - 1] + counts[middle]) / 2
+        : counts[middle];
+
+    const lowThreshold = medianFixtures * 0.5;
+    const highThreshold = medianFixtures * 1.5;
+
+    const anomalies = teamList.filter(team =>
+      team.fixtureCount < lowThreshold ||
+      team.fixtureCount > highThreshold ||
+      team.names.length > 1
+    );
+
+    const allAppearances = teamList.reduce(
+      (sum, team) => sum + team.fixtureCount,
+      0
+    );
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      diagnostic: "League Team Anomaly Validation",
+      requestedLeague: leagueId,
+      requestedSeason: season,
+
+      pagination: {
+        pagesFetched: pageCount,
+        pageLimit: limit,
+        nextCursor,
+        reachedEnd: nextCursor === null,
+        maxPagesReached:
+          pageCount >= maxPages && nextCursor !== null
+      },
+
+      summary: {
+        totalFixtures: allFixtures.length,
+        uniqueFixtureIds: fixtureIds.size,
+        duplicateFixtures,
+        uniqueTeams: teamList.length,
+        totalTeamAppearances: allAppearances,
+        medianFixturesPerTeam: medianFixtures,
+        averageFixturesPerTeam: teamList.length
+          ? Number(
+              (allAppearances / teamList.length).toFixed(2)
+            )
+          : 0,
+        lowThreshold,
+        highThreshold,
+        anomalyTeams: anomalies.length
+      },
+
+      teams: teamList.map(({ matches, ...team }) => team),
+
+      anomalies: anomalies.map(team => ({
+        ...team,
+        matches: team.matches
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      diagnostic: "League Team Anomaly Validation",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
