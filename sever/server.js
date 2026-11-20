@@ -2474,6 +2474,100 @@ const params = new URLSearchParams({
   }
 });
 
+// KICKOFF API LEAGUE FIXTURES TEST
+app.get("/api/test-kickoff-league-fixtures/:leagueId", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const leagueId = String(req.params.leagueId || "").trim();
+    const season = String(req.query.season || "2026").trim();
+    const cursor = String(req.query.cursor || "0").trim();
+
+    const params = new URLSearchParams({
+      league: leagueId,
+      season,
+      limit: "10",
+      cursor
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/fixtures?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const fixtures = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    const teams = new Map();
+
+    fixtures.forEach(fixture => {
+      [fixture.home, fixture.away].forEach(team => {
+        if (team && team.id) {
+          teams.set(team.id, {
+            id: team.id,
+            name: team.name || "",
+            logo: team.logo || ""
+          });
+        }
+      });
+    });
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      requestedLeague: leagueId,
+      requestedSeason: season,
+      totalReturned: fixtures.length,
+      meta: body.meta || {},
+      dataFields: fixtures.length > 0
+        ? Object.keys(fixtures[0])
+        : [],
+      leagueInfo: fixtures.length > 0
+        ? fixtures[0].league || null
+        : null,
+      uniqueTeamsFound: teams.size,
+      sampleTeams: [...teams.values()].slice(0, 10),
+      sampleFixtures: fixtures.slice(0, 3).map(fixture => ({
+        id: fixture.id || "",
+        date: fixture.date || "",
+        home: fixture.home || null,
+        away: fixture.away || null,
+        status: fixture.status || null,
+        league: fixture.league || null
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
