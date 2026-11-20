@@ -2896,43 +2896,62 @@ app.get("/api/test-kickoff-league-aggregate/:leagueId", async (req, res) => {
       cursor = String(nextCursor);
     }
 
-    const fixtureIds = new Set();
-    let duplicateCount = 0;
-    let scoreCount = 0;
+    
+const fixtureIds = new Set();
+let duplicateCount = 0;
 
-    const statusCounts = {};
-    const dates = [];
+let validScoreCount = 0;
+let partialScoreCount = 0;
+let missingScoreCount = 0;
 
-    allFixtures.forEach(fixture => {
-      const fixtureId = fixture.id
-        ? String(fixture.id)
-        : null;
+const statusCounts = {};
+const dates = [];
 
-      if (fixtureId) {
-        if (fixtureIds.has(fixtureId)) {
-          duplicateCount++;
-        } else {
-          fixtureIds.add(fixtureId);
-        }
-      }
+allFixtures.forEach(fixture => {
+  const fixtureId = fixture.id
+    ? String(fixture.id)
+    : null;
 
-      if (
-        fixture.score !== null &&
-        fixture.score !== undefined &&
-        fixture.score !== ""
-      ) {
-        scoreCount++;
-      }
+  if (fixtureId) {
+    if (fixtureIds.has(fixtureId)) {
+      duplicateCount++;
+    } else {
+      fixtureIds.add(fixtureId);
+    }
+  }
 
-      const status = String(fixture.status || "UNKNOWN")
-        .toUpperCase();
+  const homeScore = fixture.score?.home;
+  const awayScore = fixture.score?.away;
 
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
+  const homeValid =
+    typeof homeScore === "number" &&
+    Number.isFinite(homeScore);
 
-      if (fixture.date) {
-        dates.push(String(fixture.date));
-      }
-    });
+  const awayValid =
+    typeof awayScore === "number" &&
+    Number.isFinite(awayScore);
+
+  if (homeValid && awayValid) {
+    validScoreCount++;
+  } else if (homeValid || awayValid) {
+    partialScoreCount++;
+  } else {
+    missingScoreCount++;
+  }
+
+  const status = String(
+    fixture.status?.short ||
+    fixture.status?.long ||
+    "UNKNOWN"
+  ).toUpperCase();
+
+  statusCounts[status] =
+    (statusCounts[status] || 0) + 1;
+
+  if (fixture.date) {
+    dates.push(String(fixture.date));
+  }
+});
 
     dates.sort();
 
@@ -2959,11 +2978,16 @@ app.get("/api/test-kickoff-league-aggregate/:leagueId", async (req, res) => {
         uniqueFixtureIds: fixtureIds.size,
         duplicateFixtures: duplicateCount,
         uniqueTeams: teams.size,
-        scoreAvailable: scoreCount,
-        scoreMissing: allFixtures.length - scoreCount,
-        scoreCoveragePercent: allFixtures.length
-          ? Number((scoreCount / allFixtures.length * 100).toFixed(2))
-          : 0,
+        
+scoreValid: validScoreCount,
+scorePartial: partialScoreCount,
+scoreMissing: missingScoreCount,
+scoreCoveragePercent: allFixtures.length
+  ? Number(
+      (validScoreCount / allFixtures.length * 100).toFixed(2)
+    )
+  : 0,
+
         statusCounts,
         firstFixtureDate: dates[0] || null,
         lastFixtureDate: dates[dates.length - 1] || null
