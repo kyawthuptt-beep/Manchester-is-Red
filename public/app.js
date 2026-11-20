@@ -1396,7 +1396,7 @@ const teamData = openTeamProfile.teamDirectory.find(x =>
   }
 
   $('#teamProfileInfo').textContent =
-    'Team information is temporarily unavailable.';
+    'Error: ' + error.message;
 }
   // TEAM MATCHES
   const teamMatches = allMatches.filter(m =>
