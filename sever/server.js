@@ -3502,8 +3502,7 @@ app.get("/api/test-kickoff-team-identity/:teamId", async (req, res) => {
 
     const params = new URLSearchParams({
       limit: "2000",
-      cursor: "0"
-    });
+      cursor: String(req.query.cursor || "0")
 
     const response = await fetch(
       "https://api.kickoffapi.com/api/v2/teams?" +
