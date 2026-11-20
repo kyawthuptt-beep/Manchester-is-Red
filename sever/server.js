@@ -3369,10 +3369,14 @@ app.get("/api/test-kickoff-league-team-anomalies/:leagueId", async (req, res) =>
             status: fixture.status?.short ||
               fixture.status?.long || "UNKNOWN",
             score: fixture.score || null,
+            
             rawFixture: fixture
           });
+        });
+      });
 
       nextCursor = body.meta?.nextCursor ?? null;
+
 
       if (nextCursor === null || fixtures.length === 0) {
         break;
