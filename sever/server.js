@@ -3360,7 +3360,7 @@ app.get("/api/test-kickoff-league-team-anomalies/:leagueId", async (req, res) =>
             ? fixture.away
             : fixture.home;
 
-          record.matches.push({
+           record.matches.push({
             fixtureId: fixture.id || null,
             date: fixture.date || null,
             side,
@@ -3368,10 +3368,9 @@ app.get("/api/test-kickoff-league-team-anomalies/:leagueId", async (req, res) =>
             opponentId: opponent?.id || null,
             status: fixture.status?.short ||
               fixture.status?.long || "UNKNOWN",
-            score: fixture.score || null
+            score: fixture.score || null,
+            rawFixture: fixture
           });
-        });
-      });
 
       nextCursor = body.meta?.nextCursor ?? null;
 
