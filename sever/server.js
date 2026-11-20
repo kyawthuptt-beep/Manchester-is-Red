@@ -656,7 +656,61 @@ if (country) {
   }
 });
 
+// KICKOFF API TEAM SQUAD TEST
+app.get("/api/test-kickoff-team-squad/:id", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
 
+    const teamId = String(req.params.id || "").trim();
+
+    if (!teamId.startsWith("tm_")) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid KickoffAPI team ID"
+      });
+    }
+
+    const response = await fetch(
+      `https://api.kickoffapi.com/api/v2/teams/${encodeURIComponent(teamId)}/squad`,
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      teamId,
+      meta: body.meta || {},
+      squad: Array.isArray(body.data) ? body.data : []
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
  // KICKOFF API PREMIER LEAGUE STANDINGS TEST
 app.get("/api/test-kickoff-standings", async (req, res) => {
   try {
