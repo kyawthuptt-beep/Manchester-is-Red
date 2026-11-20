@@ -1215,7 +1215,11 @@ function toggleFollowing(team) {
   saveFollowing();
 
   renderMatches();
-  renderFollowing();
+renderFollowing();
+
+if (activeTeamProfile) {
+  renderTeamProfileFollow(activeTeamProfile);
+}
 }
 
 function renderFollowing() {
@@ -1233,7 +1237,7 @@ function renderFollowing() {
 
       <p>
         ${t(
-          'ပွဲစဉ်များထဲမှ + Follow ကိုနှိပ်ပြီး အသင်းများကို ရွေးချယ်ပါ။',
+       'အသင်းတစ်သင်းရဲ့ Profile ထဲဝင်ပြီး Follow လုပ်နိုင်ပါတယ်။',
           'Tap + Follow on any match to add your favourite teams.'
         )}
       </p>
@@ -1285,7 +1289,11 @@ async function openTeamProfile(team) {
 
   const teamName = String(team || '').trim();
 
-  $('#teamProfileName').textContent = teamName;
+  activeTeamProfile = teamName;
+
+$('#teamProfileName').textContent = teamName;
+
+renderTeamProfileFollow(teamName);
 
   $('#teamProfileInfo').textContent =
     'FOOTBALL WORLD • Team Profile';
@@ -1310,6 +1318,36 @@ try {
     if (!response.ok || result.mode !== 'live') {
       throw new Error('Could not load teams');
     }
+
+function renderTeamProfileFollow(team) {
+
+  const profileSection = $('#teamProfile');
+  const nameEl = $('#teamProfileName');
+
+  if (!profileSection || !nameEl) return;
+
+  let wrap = $('#teamProfileFollowWrap');
+
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'teamProfileFollowWrap';
+
+    nameEl.insertAdjacentElement('afterend', wrap);
+  }
+
+  wrap.innerHTML = `
+    <button
+      type="button"
+      class="save"
+      data-follow="${esc(team)}">
+
+      ${isFollowed(team)
+        ? '★ Following'
+        : '+ Follow'}
+
+    </button>
+  `;
+}
 
     openTeamProfile.teamDirectory =
       result.teams || [];
