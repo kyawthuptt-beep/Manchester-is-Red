@@ -2238,6 +2238,90 @@ app.get("/api/test-kickoff-v2-league-id-check", async (req, res) => {
   }
 });
 
+// KICKOFF API GLOBAL LEAGUES TEST
+app.get("/api/test-kickoff-leagues", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const params = new URLSearchParams({
+      limit: "2000",
+      cursor: "0"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/leagues?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(20000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const leagues = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    const countries = [
+      ...new Set(
+        leagues
+          .map(item => item.country || "")
+          .filter(Boolean)
+      )
+    ];
+
+    const types = [
+      ...new Set(
+        leagues
+          .map(item => item.type || "")
+          .filter(Boolean)
+      )
+    ];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      total: leagues.length,
+      meta: body.meta || {},
+      countryCount: countries.length,
+      competitionTypes: types,
+      dataFields: leagues.length > 0
+        ? Object.keys(leagues[0])
+        : [],
+      sampleLeagues: leagues.slice(0, 3).map(item => ({
+        id: item.id || "",
+        name: item.name || "",
+        country: item.country || "",
+        type: item.type || "",
+        logo: item.logo || ""
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
