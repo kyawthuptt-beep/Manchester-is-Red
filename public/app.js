@@ -1348,11 +1348,23 @@ try {
   const cleanName = value =>
   normalize(value).replace(/\s+fc$/i, '');
 
-const teamData = openTeamProfile.teamDirectory.find(x =>
-  cleanName(x.name) === cleanName(teamName) ||
-  normalize(x.shortName) === normalize(teamName) ||
-  normalize(x.tla) === normalize(teamName)
-);
+
+const teamData = openTeamProfile.teamDirectory.find(x => {
+  const names = [
+    x.name,
+    x.shortName,
+    x.tla
+  ].map(value => normalize(value));
+
+  const selectedName = normalize(teamName);
+
+  return names.includes(selectedName) ||
+    names.some(name =>
+      name.replace(/\s+fc$/i, '') ===
+      selectedName.replace(/\s+fc$/i, '')
+    );
+});
+
 
   if (!teamData) {
     throw new Error('Team not found');
