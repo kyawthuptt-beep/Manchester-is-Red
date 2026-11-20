@@ -2393,6 +2393,83 @@ app.get("/api/test-kickoff-league-teams/:leagueId", async (req, res) => {
   }
 });
 
+// KICKOFF API COUNTRY TEAMS FILTER TEST
+app.get("/api/test-kickoff-country-teams", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY) {
+      return res.status(503).json({
+        ok: false,
+        message: "KICKOFF_API_KEY is missing"
+      });
+    }
+
+    const country = String(
+      req.query.country || "Lithuania"
+    ).trim();
+
+    const params = new URLSearchParams({
+      country,
+      limit: "10",
+      cursor: "0"
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/teams?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(15000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const teams = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    res.json({
+      ok: true,
+      provider: "KickoffAPI",
+      requestedCountry: country,
+      totalReturned: teams.length,
+      meta: body.meta || {},
+      returnedCountries: [
+        ...new Set(
+          teams.map(team => team.country || "MISSING")
+        )
+      ],
+      dataFields: teams.length > 0
+        ? Object.keys(teams[0])
+        : [],
+      sampleTeams: teams.slice(0, 5).map(team => ({
+        id: team.id || "",
+        name: team.name || "",
+        country: team.country || "",
+        logo: team.logo || "",
+        source: team.source || ""
+      }))
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      provider: "KickoffAPI",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
