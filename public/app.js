@@ -1340,36 +1340,6 @@ try {
       throw new Error('Could not load teams');
     }
 
-function renderTeamProfileFollow(team) {
-
-  const profileSection = $('#teamProfile');
-  const nameEl = $('#teamProfileName');
-
-  if (!profileSection || !nameEl) return;
-
-  let wrap = $('#teamProfileFollowWrap');
-
-  if (!wrap) {
-    wrap = document.createElement('div');
-    wrap.id = 'teamProfileFollowWrap';
-
-    nameEl.insertAdjacentElement('afterend', wrap);
-  }
-
-  wrap.innerHTML = `
-    <button
-      type="button"
-      class="save"
-      data-follow="${esc(team)}">
-
-      ${isFollowed(team)
-        ? '★ Following'
-        : '+ Follow'}
-
-    </button>
-  `;
-}
-
     openTeamProfile.teamDirectory =
       result.teams || [];
   }
