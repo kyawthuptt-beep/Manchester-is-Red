@@ -3814,24 +3814,30 @@ app.get("/api/registry/import-preview", async (req, res) => {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]/g, "");
 
+      
       const lowerName = name.toLowerCase();
 
       let classificationHint = "needs_review";
       let classificationReason = "Insufficient identity evidence";
 
-      if (
-        /\b(women|woman|ladies|lady|feminino|feminin|female|wfc)\b/i.test(lowerName)
-      ) {
+      const womenPattern =
+        /\b(women|woman|ladies|lady|feminino|feminin|female|wfc)\b/i;
+
+      const futsalPattern = /\bfutsal\b/i;
+
+      const youthPattern =
+        /\b(u-?\s?(1[0-9]|2[0-3])|under\s?(1[0-9]|2[0-3])|youth|junior|juniors|academy|reserves|reserve)\b/i;
+
+      const clubPattern =
+        /\b(fc|cf|afc|sc|club|united|city|athletic|sporting|real|sv|ac|fk|cd|deportivo|calcio|football|soccer)\b/i;
+
+      if (womenPattern.test(lowerName)) {
         classificationHint = "women_candidate";
         classificationReason = "Women's football keyword detected";
-      } else if (
-        /\b(futsal)\b/i.test(lowerName)
-      ) {
+      } else if (futsalPattern.test(lowerName)) {
         classificationHint = "futsal_candidate";
         classificationReason = "Futsal keyword detected";
-      } else if (
-        /\b(u-?\s?(1[0-9]|2[0-3])|under\s?(1[0-9]|2[0-3])|youth|junior|juniors|academy|reserves|reserve)\b/i.test(lowerName)
-      ) {
+      } else if (youthPattern.test(lowerName)) {
         classificationHint = "youth_candidate";
         classificationReason = "Youth or reserve keyword detected";
       } else if (
@@ -3840,12 +3846,13 @@ app.get("/api/registry/import-preview", async (req, res) => {
       ) {
         classificationHint = "national_candidate";
         classificationReason = "Team name matches country name";
-      } else if (
-        /\b(fc|cf|afc|sc|club|united|city|athletic|sporting|real|sv|ac|fk|fk|cd|deportivo)\b/i.test(lowerName)
-      ) {
+      } else if (clubPattern.test(lowerName)) {
         classificationHint = "club_candidate";
         classificationReason = "Recognized club-name keyword detected";
       }
+
+      const duplicateInBatch = seenIds.has(providerId);
+
       const duplicateInBatch = seenIds.has(providerId);
       seenIds.add(providerId);
 
@@ -3857,8 +3864,9 @@ app.get("/api/registry/import-preview", async (req, res) => {
         website: team.website || null,
         source: team.source || null,
         providerType: team.type || team.category || null,
-        teamType: "unknown",
+                teamType: "unknown",
         classificationHint,
+        classificationReason,
         duplicateInBatch,
         alreadyImported: Boolean(existingTeamId),
         existingMasterTeamId: existingTeamId || null
