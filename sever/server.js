@@ -3709,7 +3709,8 @@ app.get("/api/test-supabase-tables", async (req, res) => {
   }
 });
 
-// GLOBAL TEAM REGISTRY - SAFE IMPORT PREVIEW
+
+// GLOBAL TEAM REGISTRY - BULK SAFE IMPORT PREVIEW
 app.get("/api/registry/import-preview", async (req, res) => {
   try {
     if (!KICKOFF_API_KEY || !supabase) {
@@ -3720,7 +3721,10 @@ app.get("/api/registry/import-preview", async (req, res) => {
     }
 
     const cursor = String(req.query.cursor || "0");
-    const limit = 10;
+    const requestedLimit = Number(req.query.limit || 500);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(500, Math.max(1, Math.floor(requestedLimit)))
+      : 500;
 
     const params = new URLSearchParams({
       limit: String(limit),
@@ -3734,7 +3738,7 @@ app.get("/api/registry/import-preview", async (req, res) => {
         headers: {
           "x-api-key": KICKOFF_API_KEY
         },
-        signal: AbortSignal.timeout(30000)
+        signal: AbortSignal.timeout(60000)
       }
     );
 
@@ -3760,71 +3764,131 @@ app.get("/api/registry/import-preview", async (req, res) => {
       String(team.id)
     );
 
-    const { data: existing, error } = await supabase
-      .from("team_provider_ids")
-      .select("provider_team_id, team_id")
-      .eq("provider", "kickoffapi")
-      .in("provider_team_id", providerIds);
+    const uniqueIds = [...new Set(providerIds)];
 
-    if (error) {
-      return res.status(500).json({
-        ok: false,
-        provider: "Supabase",
-        message: error.message
-      });
+    let existing = [];
+
+    if (uniqueIds.length > 0) {
+      const { data, error } = await supabase
+        .from("team_provider_ids")
+        .select("provider_team_id, team_id")
+        .eq("provider", "kickoffapi")
+        .in("provider_team_id", uniqueIds);
+
+      if (error) {
+        return res.status(500).json({
+          ok: false,
+          provider: "Supabase",
+          message: error.message
+        });
+      }
+
+      existing = data || [];
     }
 
     const existingMap = new Map(
-      (existing || []).map(item => [
+      existing.map(item => [
         item.provider_team_id,
         item.team_id
       ])
     );
 
+    const seenIds = new Set();
+
     const preview = validTeams.map(team => {
       const providerId = String(team.id);
       const existingTeamId = existingMap.get(providerId);
 
+      const name = String(team.name).trim();
+      const countryName = team.country || null;
+
+      const normalizedName = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+      const normalizedCountry = String(countryName || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+      let classificationHint = "needs_review";
+
+      if (
+        normalizedCountry &&
+        normalizedName === normalizedCountry
+      ) {
+        classificationHint = "national_candidate";
+      } else if (countryName) {
+        classificationHint = "club_candidate";
+      }
+
+      const duplicateInBatch = seenIds.has(providerId);
+      seenIds.add(providerId);
+
       return {
         provider: "kickoffapi",
         providerTeamId: providerId,
-        name: String(team.name).trim(),
-        countryName: team.country || null,
+        name,
+        countryName,
         website: team.website || null,
         source: team.source || null,
+        providerType: team.type || team.category || null,
         teamType: "unknown",
+        classificationHint,
+        duplicateInBatch,
         alreadyImported: Boolean(existingTeamId),
         existingMasterTeamId: existingTeamId || null
       };
     });
 
-    const uniqueIds = new Set(providerIds);
+    const duplicateCount = preview.filter(
+      team => team.duplicateInBatch
+    ).length;
+
+    const nationalCandidates = preview.filter(
+      team => team.classificationHint === "national_candidate"
+    ).length;
+
+    const clubCandidates = preview.filter(
+      team => team.classificationHint === "club_candidate"
+    ).length;
+
+    const needsReview = preview.filter(
+      team => team.classificationHint === "needs_review"
+    ).length;
 
     res.json({
       ok: true,
-      diagnostic: "Global Team Registry Import Preview",
+      diagnostic: "Global Team Registry Bulk Import Preview",
       mode: "READ_ONLY",
       provider: "KickoffAPI",
 
       pagination: {
         requestedCursor: cursor,
+        requestedLimit: limit,
+        returnedTeams: sourceTeams.length,
         nextCursor: body.meta?.nextCursor ?? null,
-        returnedTeams: sourceTeams.length
+        hasMore: body.meta?.nextCursor != null
       },
 
       summary: {
         sourceTeams: sourceTeams.length,
         validTeams: validTeams.length,
         invalidTeams: sourceTeams.length - validTeams.length,
-        uniqueProviderIds: uniqueIds.size,
-        duplicateProviderIds: providerIds.length - uniqueIds.size,
+        uniqueProviderIds: uniqueIds.length,
+        duplicateProviderIds: duplicateCount,
         alreadyImported: preview.filter(
           team => team.alreadyImported
         ).length,
         newTeams: preview.filter(
           team => !team.alreadyImported
-        ).length
+        ).length,
+        nationalCandidates,
+        clubCandidates,
+        needsReview
       },
+
+      classificationNote:
+        "Classification hints are preliminary only. All teamType values remain unknown until verified.",
 
       teams: preview
     });
@@ -3832,11 +3896,12 @@ app.get("/api/registry/import-preview", async (req, res) => {
   } catch (error) {
     res.status(502).json({
       ok: false,
-      diagnostic: "Global Team Registry Import Preview",
+      diagnostic: "Global Team Registry Bulk Import Preview",
       error: error.message
     });
   }
 });
+
 
 // STATIC FRONTEND
 app.use(
