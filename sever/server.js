@@ -4,13 +4,30 @@ const KICKOFF_API_KEY = process.env.KICKOFF_API_KEY;
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
+const { createClient } = require("@supabase/supabase-js");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+
+const supabase =
+  SUPABASE_URL && SUPABASE_SECRET_KEY
+    ? createClient(
+        SUPABASE_URL,
+        SUPABASE_SECRET_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        }
+      )
+    : null;
 const TOKEN = process.env.FOOTBALL_DATA_TOKEN;
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const API_NINJAS_KEY = process.env.API_NINJAS_KEY;
@@ -3588,7 +3605,46 @@ app.get("/api/test-kickoff-team-identity/:teamId", async (req, res) => {
     });
   }
 });
+// SUPABASE CONNECTION TEST
+app.get("/api/test-supabase", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(503).json({
+        ok: false,
+        message: "Supabase environment variables are missing"
+      });
+    }
 
+    const { data, error } = await supabase
+      .from("teams")
+      .select("id")
+      .limit(1);
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        provider: "Supabase",
+        message: error.message
+      });
+    }
+
+    res.json({
+      ok: true,
+      provider: "Supabase",
+      connected: true,
+      table: "teams",
+      readable: true,
+      returnedRows: data.length
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: "Supabase",
+      message: error.message
+    });
+  }
+});
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
