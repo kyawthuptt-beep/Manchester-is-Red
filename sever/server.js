@@ -3709,6 +3709,135 @@ app.get("/api/test-supabase-tables", async (req, res) => {
   }
 });
 
+// GLOBAL TEAM REGISTRY - SAFE IMPORT PREVIEW
+app.get("/api/registry/import-preview", async (req, res) => {
+  try {
+    if (!KICKOFF_API_KEY || !supabase) {
+      return res.status(503).json({
+        ok: false,
+        message: "KickoffAPI or Supabase configuration is missing"
+      });
+    }
+
+    const cursor = String(req.query.cursor || "0");
+    const limit = 10;
+
+    const params = new URLSearchParams({
+      limit: String(limit),
+      cursor
+    });
+
+    const response = await fetch(
+      "https://api.kickoffapi.com/api/v2/teams?" +
+      params.toString(),
+      {
+        headers: {
+          "x-api-key": KICKOFF_API_KEY
+        },
+        signal: AbortSignal.timeout(30000)
+      }
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        ok: false,
+        provider: "KickoffAPI",
+        error: body.error || body.message || body
+      });
+    }
+
+    const sourceTeams = Array.isArray(body.data)
+      ? body.data
+      : [];
+
+    const validTeams = sourceTeams.filter(team =>
+      team?.id && team?.name
+    );
+
+    const providerIds = validTeams.map(team =>
+      String(team.id)
+    );
+
+    const { data: existing, error } = await supabase
+      .from("team_provider_ids")
+      .select("provider_team_id, team_id")
+      .eq("provider", "kickoffapi")
+      .in("provider_team_id", providerIds);
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        provider: "Supabase",
+        message: error.message
+      });
+    }
+
+    const existingMap = new Map(
+      (existing || []).map(item => [
+        item.provider_team_id,
+        item.team_id
+      ])
+    );
+
+    const preview = validTeams.map(team => {
+      const providerId = String(team.id);
+      const existingTeamId = existingMap.get(providerId);
+
+      return {
+        provider: "kickoffapi",
+        providerTeamId: providerId,
+        name: String(team.name).trim(),
+        countryName: team.country || null,
+        website: team.website || null,
+        source: team.source || null,
+        teamType: "unknown",
+        alreadyImported: Boolean(existingTeamId),
+        existingMasterTeamId: existingTeamId || null
+      };
+    });
+
+    const uniqueIds = new Set(providerIds);
+
+    res.json({
+      ok: true,
+      diagnostic: "Global Team Registry Import Preview",
+      mode: "READ_ONLY",
+      provider: "KickoffAPI",
+
+      pagination: {
+        requestedCursor: cursor,
+        nextCursor: body.meta?.nextCursor ?? null,
+        returnedTeams: sourceTeams.length
+      },
+
+      summary: {
+        sourceTeams: sourceTeams.length,
+        validTeams: validTeams.length,
+        invalidTeams: sourceTeams.length - validTeams.length,
+        uniqueProviderIds: uniqueIds.size,
+        duplicateProviderIds: providerIds.length - uniqueIds.size,
+        alreadyImported: preview.filter(
+          team => team.alreadyImported
+        ).length,
+        newTeams: preview.filter(
+          team => !team.alreadyImported
+        ).length
+      },
+
+      teams: preview
+    });
+
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      diagnostic: "Global Team Registry Import Preview",
+      error: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
