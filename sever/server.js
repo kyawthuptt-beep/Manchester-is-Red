@@ -3645,6 +3645,70 @@ app.get("/api/test-supabase", async (req, res) => {
     });
   }
 });
+
+// SUPABASE ALL TABLES CONNECTION TEST
+app.get("/api/test-supabase-tables", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(503).json({
+        ok: false,
+        message: "Supabase environment variables are missing"
+      });
+    }
+
+    const tables = [
+      "teams",
+      "team_provider_ids",
+      "team_aliases",
+      "unresolved_teams",
+      "competitions",
+      "competition_provider_ids",
+      "team_competitions"
+    ];
+
+    const results = await Promise.all(
+      tables.map(async (table) => {
+        const { data, error } = await supabase
+          .from(table)
+          .select("id")
+          .limit(1);
+
+        return {
+          table,
+          readable: !error,
+          returnedRows: data ? data.length : 0,
+          error: error ? error.message : null
+        };
+      })
+    );
+
+    const allReadable = results.every(
+      result => result.readable
+    );
+
+    res.status(allReadable ? 200 : 500).json({
+      ok: allReadable,
+      provider: "Supabase",
+      diagnostic: "All Tables Connection Test",
+      totalTables: tables.length,
+      readableTables: results.filter(
+        result => result.readable
+      ).length,
+      failedTables: results.filter(
+        result => !result.readable
+      ).length,
+      results
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      provider: "Supabase",
+      message: error.message
+    });
+  }
+});
+
 // STATIC FRONTEND
 app.use(
   express.static(path.join(__dirname, "../public"))
