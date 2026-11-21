@@ -3801,26 +3801,51 @@ app.get("/api/registry/import-preview", async (req, res) => {
 
       const name = String(team.name).trim();
       const countryName = team.country || null;
-
+      
       const normalizedName = name
         .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]/g, "");
 
       const normalizedCountry = String(countryName || "")
         .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]/g, "");
 
+      const lowerName = name.toLowerCase();
+
       let classificationHint = "needs_review";
+      let classificationReason = "Insufficient identity evidence";
 
       if (
+        /\b(women|woman|ladies|lady|feminino|feminin|female|wfc)\b/i.test(lowerName)
+      ) {
+        classificationHint = "women_candidate";
+        classificationReason = "Women's football keyword detected";
+      } else if (
+        /\b(futsal)\b/i.test(lowerName)
+      ) {
+        classificationHint = "futsal_candidate";
+        classificationReason = "Futsal keyword detected";
+      } else if (
+        /\b(u-?\s?(1[0-9]|2[0-3])|under\s?(1[0-9]|2[0-3])|youth|junior|juniors|academy|reserves|reserve)\b/i.test(lowerName)
+      ) {
+        classificationHint = "youth_candidate";
+        classificationReason = "Youth or reserve keyword detected";
+      } else if (
         normalizedCountry &&
         normalizedName === normalizedCountry
       ) {
         classificationHint = "national_candidate";
-      } else if (countryName) {
+        classificationReason = "Team name matches country name";
+      } else if (
+        /\b(fc|cf|afc|sc|club|united|city|athletic|sporting|real|sv|ac|fk|fk|cd|deportivo)\b/i.test(lowerName)
+      ) {
         classificationHint = "club_candidate";
+        classificationReason = "Recognized club-name keyword detected";
       }
-
       const duplicateInBatch = seenIds.has(providerId);
       seenIds.add(providerId);
 
@@ -3840,6 +3865,7 @@ app.get("/api/registry/import-preview", async (req, res) => {
       };
     });
 
+    
     const duplicateCount = preview.filter(
       team => team.duplicateInBatch
     ).length;
@@ -3852,9 +3878,22 @@ app.get("/api/registry/import-preview", async (req, res) => {
       team => team.classificationHint === "club_candidate"
     ).length;
 
+    const womenCandidates = preview.filter(
+      team => team.classificationHint === "women_candidate"
+    ).length;
+
+    const youthCandidates = preview.filter(
+      team => team.classificationHint === "youth_candidate"
+    ).length;
+
+    const futsalCandidates = preview.filter(
+      team => team.classificationHint === "futsal_candidate"
+    ).length;
+
     const needsReview = preview.filter(
       team => team.classificationHint === "needs_review"
     ).length;
+
 
     res.json({
       ok: true,
@@ -3884,6 +3923,9 @@ app.get("/api/registry/import-preview", async (req, res) => {
         ).length,
         nationalCandidates,
         clubCandidates,
+        womenCandidates,
+        youthCandidates,
+        futsalCandidates,
         needsReview
       },
 
