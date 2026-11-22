@@ -3864,10 +3864,10 @@ app.get("/api/registry/import-preview", async (req, res) => {
         classificationReason = "Recognized club-name keyword detected";
       }
 
-      const duplicateInBatch = seenIds.has(providerId);
+      
+const duplicateInBatch = seenIds.has(providerId);
+seenIds.add(providerId);
 
-      const duplicateInBatch = seenIds.has(providerId);
-      seenIds.add(providerId);
 
       return {
         provider: "kickoffapi",
