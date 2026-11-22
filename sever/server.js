@@ -2310,46 +2310,38 @@ app.get("/api/test-kickoff-leagues", async (req, res) => {
           .filter(Boolean)
       )
     ];
-
-    res.json({
-      ok: true,
-      provider: "KickoffAPI",
-      total: leagues.length,
-      meta: body.meta || {},
-      countryCount: countries.length,
-      competitionTypes: types,
-      dataFields: leagues.length > 0
-        ? Object.keys(leagues[0])
-        : [],
-      sampleLeagues: leagues.slice(0, 3).map(item => ({
-        id: item.id || "",
-        name: item.name || "",
-        country: item.country || "",
-        type: item.type || "",
-        logo: item.logo || ""
-      }))
-    });
-matchingLeagues: leagues
-  .filter(item =>
-    String(item.id || "") === "lg_LxmgPz3lWqFz" ||
-    String(item.legacyId || "") === "39" ||
-    String(item.name || "").toLowerCase().includes("premier league")
-  )
-  .map(item => ({
-    id: item.id,
-    name: item.name,
-    country: item.country,
-    type: item.type,
-    legacyId: item.legacyId || null,
-    source: item.source || null
-  }))
-  } catch (error) {
-    res.status(502).json({
-      ok: false,
-      provider: "KickoffAPI",
-      error: error.message
-    });
-  }
+res.json({
+  ok: true,
+  provider: "KickoffAPI",
+  total: leagues.length,
+  meta: body.meta || {},
+  countryCount: countries.length,
+  competitionTypes: types,
+  dataFields: leagues.length > 0
+    ? Object.keys(leagues[0])
+    : [],
+  sampleLeagues: leagues.slice(0, 3).map(item => ({
+    id: item.id || "",
+    name: item.name || "",
+    country: item.country || "",
+    type: item.type || "",
+    logo: item.logo || ""
+  })),
+  matchingLeagues: leagues
+    .filter(item =>
+      String(item.id || "") === "lg_LxmgPz3lWqFz" ||
+      String(item.id || "") === "lg_49706223160bbba4" ||
+      String(item.legacyId || "") === "39" ||
+      String(item.name || "").toLowerCase().includes("premier league")
+    )
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      country: item.country,
+      type: item.type,
+      legacyId: item.legacyId || null,
+      source: item.source || null
+    }))
 });
 
  // KICKOFF API LEAGUE TEAMS RELATIONSHIP TEST
