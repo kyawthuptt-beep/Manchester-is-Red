@@ -2213,7 +2213,7 @@ app.get("/api/test-kickoff-v2-league-id-check", async (req, res) => {
       "https://api.kickoffapi.com/api/v2/fixtures"
     );
 
-    url.searchParams.set("league", "39");
+    url.searchParams.set("league", "lg_49706223160bbba4");
     url.searchParams.set("season", "2026");
     url.searchParams.set("limit", "10");
 
@@ -2227,7 +2227,7 @@ app.get("/api/test-kickoff-v2-league-id-check", async (req, res) => {
     res.status(response.status).json({
       ok: response.ok,
       test: "legacy-league-id-check",
-      requestedLeague: "39",
+      requestedLeague: "lg_49706223160bbba4",
       totalReturned: body.data?.length || 0,
       meta: body.meta || {},
       leagueIdsReturned: [
