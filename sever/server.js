@@ -2599,9 +2599,9 @@ app.get("/api/test-kickoff-league-audit/:leagueId", async (req, res) => {
     const season = String(req.query.season || "2026").trim();
     const limit = 10;
     const maxPages = Math.min(
-      60,
-      Math.max(1, Number(req.query.maxPages) || 60)
-    );
+  3,
+  Math.max(1, Number(req.query.maxPages) || 1)
+);
 
     let cursor = "0";
     let pageCount = 0;
@@ -2827,7 +2827,10 @@ app.get("/api/test-kickoff-league-aggregate/:leagueId", async (req, res) => {
     const season = String(req.query.season || "2026").trim();
 
     const limit = 100;
-    const maxPages = 100;
+const maxPages = Math.min(
+  3,
+  Math.max(1, Number(req.query.maxPages) || 1)
+);
 
     let cursor = "0";
     let pageCount = 0;
@@ -3049,7 +3052,10 @@ app.get("/api/test-kickoff-league-team-validation/:leagueId", async (req, res) =
     const season = String(req.query.season || "2026").trim();
 
     const limit = 100;
-    const maxPages = 100;
+const maxPages = Math.min(
+  3,
+  Math.max(1, Number(req.query.maxPages) || 1)
+);
 
     let cursor = "0";
     let pageCount = 0;
@@ -3187,9 +3193,16 @@ app.get("/api/test-kickoff-league-team-validation/:leagueId", async (req, res) =
 
       nextCursor = body.meta?.nextCursor ?? null;
 
-      if (nextCursor === null || fixtures.length === 0) {
-        break;
-      }
+      if (nextCursor === null) {
+  reachedEnd = true;
+  stoppedReason = "nextCursor_null";
+  break;
+}
+
+if (fixtures.length === 0) {
+  stoppedReason = "empty_page";
+  break;
+}
 
       if (String(nextCursor) === cursor) {
         return res.status(502).json({
