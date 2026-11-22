@@ -2329,7 +2329,20 @@ app.get("/api/test-kickoff-leagues", async (req, res) => {
         logo: item.logo || ""
       }))
     });
-
+matchingLeagues: leagues
+  .filter(item =>
+    String(item.id || "") === "lg_LxmgPz3lWqFz" ||
+    String(item.legacyId || "") === "39" ||
+    String(item.name || "").toLowerCase().includes("premier league")
+  )
+  .map(item => ({
+    id: item.id,
+    name: item.name,
+    country: item.country,
+    type: item.type,
+    legacyId: item.legacyId || null,
+    source: item.source || null
+  }))
   } catch (error) {
     res.status(502).json({
       ok: false,
