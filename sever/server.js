@@ -2164,6 +2164,14 @@ app.get("/api/test-kickoff-v2-fixtures-quality", async (req, res) => {
       .filter(([key, rows]) => rows.length > 1)
       .map(([key, rows]) => ({ key, rows }));
 
+    const duplicates = Object.entries(duplicateGroups)
+  .filter(([, matches]) => matches.length > 1)
+  .map(([key, matches]) => ({
+    key,
+    count: matches.length,
+    matches
+  }));
+
     const completedMatches = fixtures.filter(fx =>
       ["FT", "AET", "PEN"].includes(fx.status?.short)
     );
