@@ -3915,35 +3915,46 @@ seenIds.add(providerId);
       };
     });
 
-    
-    const duplicateCount = preview.filter(
-      team => team.duplicateInBatch
-    ).length;
+// COUNT ONLY UNIQUE PROVIDER TEAM IDs
+const uniquePreview = preview.filter(
+  team => !team.duplicateInBatch
+);
 
-    const nationalCandidates = preview.filter(
-      team => team.classificationHint === "national_candidate"
-    ).length;
+const duplicateCount = preview.filter(
+  team => team.duplicateInBatch
+).length;
 
-    const clubCandidates = preview.filter(
-      team => team.classificationHint === "club_candidate"
-    ).length;
+const nationalCandidates = uniquePreview.filter(
+  team => team.classificationHint === "national_candidate"
+).length;
 
-    const womenCandidates = preview.filter(
-      team => team.classificationHint === "women_candidate"
-    ).length;
+const clubCandidates = uniquePreview.filter(
+  team => team.classificationHint === "club_candidate"
+).length;
 
-    const youthCandidates = preview.filter(
-      team => team.classificationHint === "youth_candidate"
-    ).length;
+const womenCandidates = uniquePreview.filter(
+  team => team.classificationHint === "women_candidate"
+).length;
 
-    const futsalCandidates = preview.filter(
-      team => team.classificationHint === "futsal_candidate"
-    ).length;
+const youthCandidates = uniquePreview.filter(
+  team => team.classificationHint === "youth_candidate"
+).length;
 
-    const needsReview = preview.filter(
-      team => team.classificationHint === "needs_review"
-    ).length;
+const futsalCandidates = uniquePreview.filter(
+  team => team.classificationHint === "futsal_candidate"
+).length;
 
+const needsReview = uniquePreview.filter(
+  team => team.classificationHint === "needs_review"
+).length;
+
+const alreadyImportedCount = uniquePreview.filter(
+  team => team.alreadyImported
+).length;
+
+const newTeamsCount = uniquePreview.filter(
+  team => !team.alreadyImported
+).length;
 
     res.json({
       ok: true,
@@ -3959,25 +3970,23 @@ seenIds.add(providerId);
         hasMore: body.meta?.nextCursor != null
       },
 
-      summary: {
-        sourceTeams: sourceTeams.length,
-        validTeams: validTeams.length,
-        invalidTeams: sourceTeams.length - validTeams.length,
-        uniqueProviderIds: uniqueIds.length,
-        duplicateProviderIds: duplicateCount,
-        alreadyImported: preview.filter(
-          team => team.alreadyImported
-        ).length,
-        newTeams: preview.filter(
-          team => !team.alreadyImported
-        ).length,
-        nationalCandidates,
-        clubCandidates,
-        womenCandidates,
-        youthCandidates,
-        futsalCandidates,
-        needsReview
-      },
+      
+summary: {
+  sourceTeams: sourceTeams.length,
+  validTeams: validTeams.length,
+  invalidTeams: sourceTeams.length - validTeams.length,
+  uniqueProviderIds: uniqueIds.length,
+  duplicateProviderIds: duplicateCount,
+  alreadyImported: alreadyImportedCount,
+  newTeams: newTeamsCount,
+  nationalCandidates,
+  clubCandidates,
+  womenCandidates,
+  youthCandidates,
+  futsalCandidates,
+  needsReview
+},
+
 
       classificationNote:
         "Classification hints are preliminary only. All teamType values remain unknown until verified.",
