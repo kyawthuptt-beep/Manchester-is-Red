@@ -3822,9 +3822,18 @@ const cursor = rawCursor;
       ? body.data
       : [];
 
-    const validTeams = sourceTeams.filter(team =>
-      team?.id && team?.name
-    );
+    
+const validTeams = sourceTeams.filter(team =>
+  team &&
+  typeof team === "object" &&
+  team.id !== null &&
+  team.id !== undefined &&
+  String(team.id).trim() !== "" &&
+  team.name !== null &&
+  team.name !== undefined &&
+  String(team.name).trim() !== ""
+);
+
 
     const providerIds = validTeams.map(team =>
       String(team.id)
