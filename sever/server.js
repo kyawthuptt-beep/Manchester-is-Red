@@ -3772,7 +3772,21 @@ app.get("/api/registry/import-preview", async (req, res) => {
       });
     }
 
-    const cursor = String(req.query.cursor || "0");
+    
+const rawCursor = String(req.query.cursor ?? "0").trim();
+
+if (
+  !/^\d+$/.test(rawCursor) ||
+  !Number.isSafeInteger(Number(rawCursor))
+) {
+  return res.status(400).json({
+    ok: false,
+    message: "Invalid pagination cursor"
+  });
+}
+
+const cursor = rawCursor;
+
     const requestedLimit = Number(req.query.limit || 500);
     const limit = Number.isFinite(requestedLimit)
       ? Math.min(500, Math.max(1, Math.floor(requestedLimit)))
