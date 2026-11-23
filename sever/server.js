@@ -3106,6 +3106,8 @@ const maxPages = Math.min(
     let missingTeamFixtures = 0;
     let wrongLeagueFixtures = 0;
     let duplicateFixtures = 0;
+    let reachedEnd = false;
+    let stoppedReason = "unknown";
 
     while (pageCount < maxPages) {
       const params = new URLSearchParams({
