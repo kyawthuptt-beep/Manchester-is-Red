@@ -2161,10 +2161,6 @@ app.get("/api/test-kickoff-v2-fixtures-quality", async (req, res) => {
     }
 
     const duplicates = Object.entries(duplicateGroups)
-      .filter(([key, rows]) => rows.length > 1)
-      .map(([key, rows]) => ({ key, rows }));
-
-    const duplicates = Object.entries(duplicateGroups)
   .filter(([, matches]) => matches.length > 1)
   .map(([key, matches]) => ({
     key,
